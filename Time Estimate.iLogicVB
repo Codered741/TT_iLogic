@@ -1,0 +1,421 @@
+﻿'AUTHOR: Cody Redding 
+'CONTACT: Codered741@gmail.com
+
+
+'FUNCTION:
+'Provides machining time estimates to Epicor via file parameters
+
+Sub Main()
+
+	SharedVariable("LogVar") = "Time Estimate"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+
+	Dim Debug as Boolean = False 'enable debug mode
+	Dim oDoc As Document = ThisApplication.ActiveEditDocument
+	
+	Dim oCompDef as ComponentDefinition
+	Dim userProps as PropertySet
+	Dim pOPS
+	Dim pMtlRem
+	Dim pHoles
+	Dim pHolesTap
+	Dim pEdges
+	Dim pMilledFaceCount 
+	Dim pPerim
+	Dim pMaterial
+	Dim pRoutTime
+	Dim pMillTime
+	
+	Dim MillingTime As Double
+	Dim DrillTime As Double
+	Dim TapTime As Double
+	Dim FlipTime As Double
+	Dim MillSetup As Double
+	Dim SetupTime As Double
+	Dim ProgramTime As Double
+	Dim ComplexMult As Double
+	Dim MillPerPart As Double
+	
+	If IsPrt(oDoc) = True Then
+		Try
+			oCompDef = oDoc.ComponentDefinition
+			userProps = oDoc.PropertySets.Item("Inventor User Defined Properties")
+			pOPS = userProps.Item("OPS")
+			pMtlRem = userProps.Item("MATERIAL REMOVED")
+			pHoles = userProps.Item("Holes")
+			pHolesTap = userProps.Item("HolesTapped")
+			pEdges = userProps.Item("Edge Count")
+			pMilledFaceCount = userProps.Item("MilledFaceCount")
+			pPerim = userProps.Item("Perimeter")
+			pMaterial = userProps.Item("MATERIAL DESCRIPTION")
+			pRoutTime = userProps.Item("RoutTime")
+			pMillTime = userProps.Item("MillTime")
+		Catch
+			iLogicVB.RunExternalRule("Smart Part Property Add.txt")
+			MsgBox("Properties were not added, please try again.  ", ,"Time Estimate Error")
+			Exit Sub
+		End Try
+		
+		pHoles.Value = GetHolesQty(oCompDef)
+		pHolesTap.Value = GetHolesTapQty(oCompDef)
+		pEdges.Value = EdgeCounts(oDoc)
+		pMtlRem.Value = MaterialRemoved(oDoc, Parameter("XDIM"), Parameter("YDIM"), Parameter("ZDIM"))
+		
+		'Get Setup counts for Mill OPS
+		If pOPS.Value.Contains("OP010") AndAlso Not Debug Then
+			pMilledFaceCount.Value = 0
+			pPerim.Value = 0
+			While pMilledFaceCount.Value < 1 OrElse pMilledFaceCount.Value > 6
+				pMilledFaceCount.Value = InputBox("Please enter the number of Milled Faces (1-6)", "Mill OP Detected", "0")
+				If pMilledFaceCount.Value < 1 OrElse pMilledFaceCount.Value > 6 Then
+					MsgBox("Please enter a value between 1 and 6")
+				End If
+			End While
+		Else 
+			pMilledFaceCount.Value = 0
+		End If
+		
+		ComplexMult = ComplexityModifier(pEdges.Value)
+			
+		'Estimate Time to remove material, defaults to steel value unless aluminum is detected.  
+		If pMaterial.Value.ToLower.Contains("aluminum") OrElse pMaterial.Value.ToLower.Contains("plastic") OrElse pMaterial.Value.ToLower.Contains("wood") AndAlso pMilledFaceCount.Value > 0 Then 'CHECK CASE
+			MillingTime	= (pMtlRem.Value / 0.3616)*ComplexMult
+		Else 'If pMaterial.Value.Contains("Steel") 
+			MillingTime = (pMtlRem.Value / 0.1448)*ComplexMult
+		End If
+		
+		DrillTime = pHoles.Value * 30
+		TapTime = pHolesTap.Value * 30
+		FlipTime = pMilledFaceCount.Value * 30
+		
+		If pMilledFaceCount.Value > 0 Then
+			pMillTime.Value = Round((MillingTime + DrillTime + TapTime + FlipTime)/60, 2)
+		Else 
+			pMillTime.Value = 0
+		End If
+		
+
+		'Get perimeter for router ops
+		If pOPS.Value.Contains("OP011") AndAlso Not Debug Then
+			MsgBox("Please select the bottom router face.  ", Title := "Router OP detected")
+			pPerim.Value = GetPerimeter(oDoc)
+		Else 
+			pPerim.Value = 0
+		End If
+		
+		'Calculate Estimated Router Time
+		If pPerim.Value > 0 Then 
+			pRoutTime.Value = Round(pPerim.Value / 100, 2) 'Check this Value
+		Else
+			pRoutTime.Value = 0
+		End If
+		
+		
+		
+		'//////////////////////////////////TESTING////////////////////////////////////////////
+		If Debug Then 'Ignore op rules, and display the info for debug purposes.  
+		
+			pMilledFaceCount.Value = 0
+			pPerim.Value = 0
+			
+			'Get Machined Sides
+			pMilledFaceCount.Value = InputBox("Please enter the number of Machined Sides (1-6)", "Mill OP Detected", "0")
+			
+			MsgBox("Please select the bottom router face.  ", Title := "Router OP detected")
+			pPerim.Value = GetPerimeter(oDoc)
+			
+			
+			
+			Dim RoutingTime As Double
+			
+			If pPerim.Value > 0 Then 
+				RoutingTime = Round(pPerim.Value / 100, 2) 'Check this Value
+			End If
+			
+			
+			
+			'MsgBox("Routing Time: " & RoutingTime & " min")
+			
+			If pMilledFaceCount.Value > 0 Then
+				MillPerPart = Round((MillingTime + DrillTime + TapTime + FlipTime)/60, 2)
+			Else 
+				MillPerPart = 0
+			End If
+			
+			MillSetup = (SetupTime + ProgramTime)/60
+			
+			MsgBox("Milling Time (per Part): " & MillPerPart & " min" & vbCrLf & _
+				"Mill Setup (one time): " & MillSetup & " min" & vbCrLf & _
+				"Routing Time: " & RoutingTime & " min")
+			
+			
+			'MsgBox("Mill Setup (one time): " & MillSetup & " min")
+			
+		End If 'Debug
+		
+	Else 
+	
+		'MessageBox.Show("Machining estimation is only valid for parts.  ", "Machining Estimation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+		' pHoles.Value = 0
+		' pHolesTap.Value = 0
+		' pEdges.Value = 0
+		' pMilledFaceCount.Value = 0
+		' pPerim.Value = 0
+		
+	End If
+
+End Sub
+
+Function GetPerimeter(Doc as Document) as Double
+    '  a reference to the part component definition.
+    ' This assumes that a part document is active.
+    Dim oCompDef As PartComponentDefinition
+    oCompDef = ThisApplication.ActiveEditDocument.ComponentDefinition
+	
+    ' Get the first face of the model.  This sample assumes a simple
+    ' model where at least the first face is a plane.  (A box is a good
+    ' test case.)
+	Dim oFace As Face
+    oFace = ThisApplication.CommandManager.Pick(SelectionFilterEnum.kPartFacePlanarFilter, "Select bottom face")
+    ' Get one of the edges of the face to use as the sketch x-axis.
+    Dim oEdge As Edge
+    oEdge = oFace.Edges.Item(2)
+    
+    ' Get the start vertex of the edge to use as the origin of the sketch.
+    Dim oVertex As Vertex
+    oVertex = oEdge.StartVertex
+
+    ' Create a new sketch.  This last argument is  to true to cause the
+    ' creation of sketch geometry from the edges of the face.
+    Dim oSketch As PlanarSketch
+    oSketch = oCompDef.Sketches.AddWithOrientation(oFace, oEdge, True, True, oVertex, True)
+    
+    ' Change the name.
+    oSketch.Name = "Router Estimate"
+    
+	Dim oProfile As Profile
+	oProfile = oSketch.Profiles.AddForSolid
+
+	Dim oRegionProps As RegionProperties
+    oRegionProps = oProfile.RegionProperties
+	
+	oRegionProps.Accuracy = AccuracyEnum.kMedium
+	
+	Dim oUOM As UnitsOfMeasure = Doc.UnitsOfMeasure
+	
+	GetPerimeter = Round(oUOM.ConvertUnits(oRegionProps.Perimeter, "cm", "in"), 2)
+	
+	oSketch.Delete
+	
+End Function
+
+Function EdgeCounts(oPartDoc as PartDocument) As Integer 'Returns the number of edges in the current model
+
+	Dim oCompDef As ComponentDefinition = oPartDoc.ComponentDefinition
+	Dim oSurfaceBodies As SurfaceBodies = oCompDef.SurfaceBodies
+	Dim oSurfaceBody As SurfaceBody = oSurfaceBodies(1)
+	Return oSurfaceBody.Edges.Count
+	
+End Function
+
+Function MaterialRemoved(Doc as Document, XDIM As Double, YDIM As Double, ZDIM As Double) As Double 'Returns Difference between the part bounding box and the part volume
+	
+	Dim partVol as Double = Doc.ComponentDefinition.MassProperties.Volume
+	Dim oUOM As UnitsOfMeasure = Doc.UnitsOfMeasure 
+	Dim oLenUnitsEnum as Integer = oUOM.LengthUnits
+	
+	'Convert Bounding Box Dims to Inches
+	XDIMin = oUOM.ConvertUnits(XDIM, oLenUnitsEnum, "in")
+	YDIMin = oUOM.ConvertUnits(YDIM, oLenUnitsEnum, "in")
+	ZDIMin = oUOM.ConvertUnits(ZDIM, oLenUnitsEnum, "in")
+	
+	'Convert Part Volume from cubic centimeters to cubic Inches
+	Dim PartVolIn As Double = oUOM.ConvertUnits(partVol, "cm^3", "inch^3")
+	
+	Dim BBoxVol as Double = XDIMin * YDIMin * ZDIMin
+
+	MtlRemoved = Abs(Round(BBoxVol - PartVolIn, 2))
+	
+	Return MtlRemoved
+	
+End Function
+
+Function GetHolesQty(ByVal oDef As PartComponentDefinition) As Integer
+
+	Dim oSurfaceBodies as SurfaceBodies = oDef.SurfaceBodies
+	Dim oSurfaceBody As SurfaceBody = oSurfaceBodies.Item(1)
+	Dim oFaces as Faces = oSurfaceBody.Faces
+	Dim oFace As Face
+	Dim i As Integer = 0
+
+	For Each oFace In oFaces
+		If oFace.SurfaceType = SurfaceTypeEnum.kCylinderSurface Then
+			i = i+1
+		End If
+	Next
+
+	Return i
+	' Dim N As Integer = 0 'counter
+	' Dim oHoles As HoleFeatures = oDef.Features.HoleFeatures
+	
+	' For Each oH As HoleFeature In oHoles
+		' If Not oH.Suppressed Then
+			' N += oH.HoleCenterPoints.Count
+		' End If
+	' Next
+	
+	' 'have we any rectangular patterns ?
+	' Dim oRectPatterns As RectangularPatternFeatures
+	' oRectPatterns = oDef.Features.RectangularPatternFeatures
+	
+	' For Each oRPF As RectangularPatternFeature In oRectPatterns
+		' Dim m As Integer = 0
+		' If Not oRPF.Suppressed Then
+			' If (TypeOf oRPF.ParentFeatures.Item(1) Is HoleFeature) Then
+				' Dim oH As HoleFeature = oRPF.ParentFeatures.Item(1)
+				' If Not oH.Suppressed Then
+					' For Each oFPE As FeaturePatternElement In oRPF.PatternElements
+						' If Not oFPE.Suppressed Then m += 1
+					' Next
+				' End If
+			' End If
+			' N += m - 1
+		' Else
+			' N += m
+		' End If
+	' Next
+	
+	' 'have we any circular patterns ?
+	' Dim oCircPatterns As CircularPatternFeatures
+	' oCircPatterns = oDef.Features.CircularPatternFeatures
+	
+	' For Each oCPF As CircularPatternFeature In oCircPatterns
+		' Dim m As Integer = 0
+		' If Not oCPF.Suppressed Then
+			' If (TypeOf oCPF.ParentFeatures.Item(1) Is HoleFeature) Then
+				' Dim oH As HoleFeature = oCPF.ParentFeatures.Item(1)
+				' If Not oH.Suppressed Then
+					' For Each oFPE As FeaturePatternElement In oCPF.PatternElements
+						' If Not oFPE.Suppressed Then m += 1
+					' Next
+				' End If
+			' End If
+			' N += m - 1
+		' Else
+			' N += m
+		' End If
+	' Next
+	' Return N
+End Function
+
+Function GetHolesTapQty(ByVal oDef As PartComponentDefinition) As Integer
+
+	Dim N As Integer = 0 'counter
+	Dim oHoles As HoleFeatures = oDef.Features.HoleFeatures
+	
+	For Each oH As HoleFeature In oHoles
+		If Not oH.Suppressed  AndAlso oH.Tapped = True Then
+			N += oH.HoleCenterPoints.Count
+		End If
+	Next
+	
+	'have we any rectangular patterns ?
+	Dim oRectPatterns As RectangularPatternFeatures
+	oRectPatterns = oDef.Features.RectangularPatternFeatures
+	
+	If oRectPatterns.Count > 0 Then
+		For Each oRPF As RectangularPatternFeature In oRectPatterns
+			Dim m As Integer = 0
+			If Not oRPF.Suppressed Then
+				If (TypeOf oRPF.ParentFeatures.Item(1) Is HoleFeature) Then
+					Dim oH As HoleFeature = oRPF.ParentFeatures.Item(1)
+					If Not oH.Suppressed AndAlso oH.Tapped = True Then
+						For Each oFPE As FeaturePatternElement In oRPF.PatternElements
+							If Not oFPE.Suppressed Then m += 1
+						Next
+					End If
+				End If
+				N += m - 1
+			Else
+				N += m
+			End If
+		Next
+	End If
+	
+	'have we any circular patterns ?
+	Dim oCircPatterns As CircularPatternFeatures
+	oCircPatterns = oDef.Features.CircularPatternFeatures
+	
+	If oCircPatterns.Count > 0 Then
+		For Each oCPF As CircularPatternFeature In oCircPatterns
+			Dim m As Integer = 0
+			If Not oCPF.Suppressed Then
+				If (TypeOf oCPF.ParentFeatures.Item(1) Is HoleFeature) Then
+					Dim oH As HoleFeature = oCPF.ParentFeatures.Item(1)
+					If Not oH.Suppressed  AndAlso oH.Tapped = True Then
+						For Each oFPE As FeaturePatternElement In oCPF.PatternElements
+							If Not oFPE.Suppressed Then m += 1
+						Next
+					End If
+				End If
+				N += m - 1
+			Else
+				N += m
+			End If
+		Next
+	End If
+	
+	Return N
+End Function
+
+Function isPrt(ThisDoc As Document) As Boolean
+
+	Debug.Print (ThisDoc.DocumentType)
+
+	If ThisDoc.DocumentType = kPartDocumentObject Then
+
+		isPrt = True
+		
+	Else
+
+		isPrt = False
+		
+	End If
+
+End Function
+
+Function ComplexityModifier(Count as Integer) As Integer
+	Select Case	Count
+		Case 1 to 100
+			ComplexityModifier = 1.5
+		Case 101 to 200
+			ComplexityModifier = 1.8
+		Case 201 To 300
+			ComplexityModifier = 2.1
+		Case 301 To 400
+			ComplexityModifier = 2.5
+		Case 401 To 500
+			ComplexityModifier = 2.8
+		Case 501 To 600
+			ComplexityModifier = 3.4
+		Case 601 To 700
+			ComplexityModifier = 4
+		Case 701 To 800
+			ComplexityModifier = 5
+		Case 801 To 900
+			ComplexityModifier = 6
+		CAse 901 To 1000
+			ComplexityModifier = 7
+		Case 1001 To 1100
+			ComplexityModifier = 8
+		Case 1101 To 1200
+			ComplexityModifier = 8.5
+		Case 1201 To 1300
+			ComplexityModifier = 9
+		Case 1301 To 1400
+			ComplexityModifier = 9.5
+		Case Count > 1401
+			ComplexityModifier = 10
+	End Select
+End Function

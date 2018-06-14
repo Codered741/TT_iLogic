@@ -1,0 +1,23 @@
+	'Get the log file and prepare to write
+	Dim oAppend As System.IO.StreamWriter
+	Dim oFile As String = "Z:\Inventor Data\SV Log.log"
+	Dim noWrite as Boolean = False
+	Dim LogVar As String 
+	Try	
+		LogVar = SharedVariable("LogVar")
+	Catch
+		noWrite = True
+	End Try
+	
+	'Check for access to the log file, disable writing if no access
+	Try
+		oAppend = IO.File.AppendText(oFile)
+	Catch
+		noWrite = True
+	End Try
+	'Write header info to log if access to log is enabled
+	If noWrite = False Then
+		oAppend.WriteLine(ThisApplication.UserName & "," & DateTime.Now.ToString("s") & "," & LogVar)
+		oAppend.Flush()
+		oAppend.Close()
+	End If

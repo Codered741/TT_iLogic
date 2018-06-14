@@ -1,0 +1,35 @@
+
+	SharedVariable("LogVar") = "Universal Config"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+Dim ProjNumName As String = Parameter("ProjectNum")
+Dim ProjNumValue As String 
+Dim err as Boolean = False
+
+Select Case ProjNumName
+'"Collapsing Tower", "Mariner", "Jetski Launcher", "Masking Curtain", "Seaplane Launcher")
+    Case "Collapsing Tower" : ProjNumValue = "713-301-201-SHA-SAE-12"
+    Case "Mariner" : ProjNumValue = "713-301-201-SHA-SAE-11"
+    Case "Jetski Launcher" : ProjNumValue = "713-301-201-SHA-SAE-02"
+    Case "Masking Curtain" : ProjNumValue = "713-301-201-SHA-SAE-04"
+	Case "Seaplane Launcher" : ProjNumValue = "713-301-201-SHA-SAE-05"
+	Case "Lakitu Marquee" : ProjNumValue = "SAE-SC02-02"
+	Case "Hovering Propeller" : ProjNumValue = "SAE-SC08-02"
+	Case "Chain Chomp" : ProjNumValue = "SAE-SC03-02"
+	Case "Chandelier" : ProjNumValue = "SAE-SC07-02"
+	Case "Airship Propeller" : ProjNumValue = "SAE-SC09-02/03"
+	Case "Small Piranha Plant" : ProjNumValue = "SAE-SC04-01"
+	Case "Side Thwomp" : ProjNumValue = "SAE-SC03-04"
+	Case "Bounce Pad w/Props" : ProjNumValue = "SAE-SC08-04"
+	Case Else 
+		MessageBox.Show("Element Name is not valid.  ", "Universal Config")
+		err = True
+End Select
+
+iProperties.Value("Custom", "Project Number") = ProjNumValue
+
+If err = False Then
+	MessageBox.Show("Configuration Sucessful", "Universal Config")
+Else
+	MessageBox.Show("Configuration Failed!  Please check the inputs.  ", "Universal Config")
+End If

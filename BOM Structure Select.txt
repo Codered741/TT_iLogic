@@ -1,0 +1,49 @@
+Dim oDoc As Document = ThisApplication.ActiveDocument
+Dim comps As SelectSet = oDoc.SelectSet
+Dim comp As ComponentOccurrence
+Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+
+	SharedVariable("LogVar") = "BOM Structure Select"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+'create list
+oStringArray = new string(){"Normal", "Phantom", "Reference", "Purchased", "Inseparable"}
+
+'Normal = 51970
+'Phantom = 51971
+'Reference = 51972
+'Purchased = 51973
+'Inseparable = 51974
+oList = InputListBox("Select BOM Structure", oStringArray, "Normal", "iLogic", "Available BOM Structure")
+
+'define BOM Structure to use
+Dim oBOMStructure as Object
+If oList = "Normal" Then
+	oBOMStructure = 51970
+Else if oList = "Phantom" Then
+	oBOMStructure = 51971
+Else if oList = "Reference" Then
+	oBOMStructure = 51972
+Else if oList = "Purchased" Then
+	oBOMStructure = 51973
+Else if oList = "Inseparable" Then
+	oBOMStructure = 51974
+
+End if
+
+'Apply selected BOM structure to Selected objects.  
+If comps.count > 0 Then   
+
+	numParts = comps.count
+
+	For Each comp In comps
+		'Parameter(comp.Name, "VendorSupplyMtl") = True
+		oCommandMgr.ControlDefinitions.Item("VaultCheckout").Execute
+		comp.Definition.BOMStructure = oBOMStructure
+	Next
+	
+	MessageBox.Show(numParts & " part(s) were successfully changed", "Success")
+	
+Else
+	MessageBox.Show("There are no components selected", "Error")
+End If

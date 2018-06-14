@@ -1,0 +1,3 @@
+﻿iProperties.Value("Custom", "Detailer") = "Matt Bettinger"
+iProperties.Value("Project", "Designer") = "Matt Bettinger"
+iProperties.Value("Status", "Checked By") = "Matt Bettinger"

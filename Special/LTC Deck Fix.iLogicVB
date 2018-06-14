@@ -1,0 +1,25 @@
+﻿Dim oDoc As Document = ThisApplication.ActiveDocument
+Dim comps As SelectSet = oDoc.SelectSet
+Dim comp As ComponentOccurrence
+Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+Dim oRefOLE As ReferencedOLEFileDescriptors = oDoc.ReferencedOLEFileDescriptors
+'If there are selected components we can do something, otherwise we're done
+
+If comps.count > 0 Then   
+
+numParts = comps.count
+
+	For Each comp In comps
+		'Parameter(comp.Name, "VendorSupplyMtl") = True
+		oCommandMgr.ControlDefinitions.Item("VaultCheckout").Execute
+		Parameter(comp.Name, "MB") = True
+		iProperties.Value("Custom", "MakeBuy") = "Make"
+		iProperties.Value(comp.Name, "Custom", "Material Description") = "Plywood 3/4 inch x 48 inch x 96 inch Shop"
+		iProperties.Value(comp.Name, "Custom", "Material Number") = "1006012"
+	Next
+	
+	MessageBox.Show(numParts & " parts were successfully changed", "Success")
+	
+Else
+	MessageBox.Show("There are no components selected", "Error")
+End If

@@ -1,0 +1,89 @@
+Sub Main()
+
+	SharedVariable("LogVar") = "Universal Prop Add"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	Dim UNVSTDProps As New List(of String)
+	Dim UNVStrParams As New List(of String)
+	
+	UNVSTDProps.Add("NextAssy")
+	UNVSTDProps.Add("UsedOn")
+	UNVSTDProps.Add("Project Number")
+	UNVSTDProps.Add("Material")
+	UNVSTDProps.Add("Building Number")
+	
+	PropAdd(UNVSTDProps)
+	
+	'Parameter Setup
+	UNVStrParams.Add("ProjectNum")
+	
+	ParamAdd(UNVStrParams, "TXT")
+	
+	'MultiValue.SetList(UNVStrParams(0), "Collapsing Tower", "Mariner", "Jetski Launcher", "Masking Curtain", "Seaplane Launcher")
+
+	iProperties.Value("Project", "Vendor") = "TAIT"
+	
+End Sub
+
+Public Sub PropAdd(Props as List(Of String))
+	'Init
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
+	
+	For Each prop In Props
+		Try
+			iprop = customPropertySet.Item(prop)
+		Catch
+			' Assume error means not found
+			customPropertySet.Add("Custom", prop)
+			iProperties.Value("Custom", prop) = ""
+		End Try
+	Next
+End Sub
+
+Public Sub ParamAdd(Params As List(Of String), UnitType As String)
+	'Init
+	Dim oPartDoc As Document = ThisApplication.ActiveDocument
+	Dim oCompDef As ComponentDefinition = oPartDoc.ComponentDefinition
+	oMyParameter=oCompDef.Parameters.UserParameters
+	
+	'Main
+	If UnitType = "BOOL" Then	
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oMyParameter=oCompDef.Parameters.UserParameters
+				oParameter=oMyParameter.AddByValue(pmtr, True, "BOOLEAN")
+			End Try
+		Next 
+	Else If UnitType = "IN" Then
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oMyParameter=oCompDef.Parameters.UserParameters
+				oParameter=oMyParameter.AddByValue(pmtr, 0 in, UnitsTypeEnum.kInchLengthUnits)
+			End Try
+		Next 
+	Else If UnitType = "TXT"
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oMyParameter=oCompDef.Parameters.UserParameters
+				oParameter=oMyParameter.AddByValue(pmtr, " ", UnitsTypeEnum.kTextUnits)
+				MultiValue.SetList(pmtr, "Collapsing Tower", "Mariner", "Jetski Launcher", "Masking Curtain", "Seaplane Launcher", "Lakitu Marquee", "Hovering Propeller", "Chain Chomp", "Chandelier", "Airship Propeller", "Small Piranha Plant", "Side Thwomp", "Bounce Pad w/Props")
+			End Try
+		Next 
+	Else If UnitType = "UL" Then
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oMyParameter=oCompDef.Parameters.UserParameters
+				oParameter=oMyParameter.AddByValue(pmtr, 0 , UnitsTypeEnum.kUnitlessUnits)
+			End Try
+		Next 
+	End If
+End Sub

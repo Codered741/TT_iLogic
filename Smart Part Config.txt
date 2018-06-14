@@ -1,0 +1,287 @@
+﻿'AUTHOR: Cody Redding
+'CONTACT: Codered741@gmail.com
+
+Sub Main()
+	'Declarations
+	Dim oDoc As Document = ThisApplication.ActiveEditDocument 
+	Dim oUOM As UnitsOfMeasure = oDoc.UnitsOfMeasure 
+	Dim oUOMstr As String = oUOM.GetStringFromType(oUOM.LengthUnits) 'for user prompt
+	Dim oUnitsEnum as Integer = oUom.LengthUnits
+	Dim sizes As New List(Of Double)
+	Dim LString as String
+	Dim WString as String
+	Dim TString as String
+	Dim VersionNum as String = "2.2"
+	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+	
+	'Enforce the correct Application Options (Content Center)
+	ThisApplication.ContentCenterOptions.SetAccessOption(81154)
+		'kInventorDesktopAccess = 81153
+		'kVaultOrProductstreamServerAccess = 81154
+	ThisApplication.ContentCenterOptions.CustomFamilyAsStandard() = True
+
+	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+	DesignPropertySet = oDoc.PropertySets.Item("Design Tracking Properties")
+	SummaryPropertySet = oDoc.PropertySets.Item("Inventor Summary Information")
+
+	'Define iProperties to reference	
+	Dim pOPS
+	Dim pMB
+	Dim pSP
+	Dim pWidth
+	Dim pLength
+	Dim pThick
+	Dim pMatNum
+	Dim pMatDesc
+	Dim pSPVer
+	
+	Start:
+	Try 'Get custom iProperties, run property add rule if not found
+		pOPS = customPropertySet.Item("OPS")
+		pMB	= customPropertySet.Item("MakeBuy")
+		pSP = customPropertySet.Item("SP")
+		pWidth = customPropertySet.Item("WIDTH")
+		pLength = customPropertySet.Item("LENGTH")
+		pThick = customPropertySet.Item("THICKNESS")
+		pMatNum = customPropertySet.Item("MATERIAL NUMBER")
+		pMatDesc = customPropertySet.Item("MATERIAL DESCRIPTION")
+		pSPVer = customPropertySet.Item("SPVer")
+	Catch
+		iLogicVB.RunExternalRule("Smart Part Property Add.Txt")
+		MsgBox("Properties were added, please double check your entries.  ")
+		Goto Start
+	End Try
+	
+	If Not pSPVer.Value = VersionNum Then
+		iLogicVB.RunExternalRule("Smart Part Property Add.Txt")
+		MsgBox("Properties were added, please double check your entries.  ")
+		Goto Start
+	End If
+	
+	oCommandMgr.ControlDefinitions.Item("VaultCheckout").Execute 'Check out file
+	
+	'Design iProperties
+	Dim pPN = DesignPropertySet.Item("Part Number")	
+	Dim pCreateDate = DesignPropertySet.Item("Creation Time")
+	Dim pDesc = DesignPropertySet.Item("Description")
+	
+	'Summary iProperties
+	Dim pRev = SummaryPropertySet.Item("Revision Number")
+	
+	'Get the log file and prepare to write
+	Dim oAppend As System.IO.StreamWriter
+	Dim oFile As String = "Z:\Inventor Data\splog.log"
+	Dim noWrite as Boolean = False
+	
+	'Check for access to the log file, diasble writing if no access
+	Try
+		oAppend = IO.File.AppendText(oFile)
+	Catch
+		noWrite = True
+	End Try
+	
+	'Write header info to log if access to log is enabled
+	If noWrite = False Then
+		oAppend.Write(ThisApplication.UserName & "," & DateTime.Now.ToString("G") & "," & DocumentFileNameExt(oDoc) & ",")
+	End If
+	
+	'/////////////////////////////////////////////////////// Checks for correct formatting
+	'Check for the correct file type, and that file is saved.  
+	If oDoc.DocumentType = kDrawingDocumentObject Then
+		MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
+		If noWrite = False Then
+			oAppend.WriteLine("ERROR Drawing Document")
+		End If
+		Exit Sub
+	End If
+	
+	If oDoc.DocumentType = kPresentationDocumentObject Then	
+		MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
+		If noWrite = False Then
+			oAppend.WriteLine("ERROR Presentation Document")
+		End If
+		Exit Sub
+	End If
+	
+	If oDoc.FileSaveCounter < 1 Then
+		MessageBox.Show("File is not saved.  Please save and try again.  ", "Rule Error",MessageBoxButtons.OK, MessageBoxIcon.Error)
+		Exit Sub
+	End If
+	
+	If oDoc.FullFileName.Length > 200 Then
+		MessageBox.Show("This file is saved in a folder path that is too long for Vault.  " & vbLf & _
+			"Please reduce the depth of the folder structure, or shorten the folder name lengths.  " & vbLf & _ 
+			"This Part was not configured.  See a Vault Admin for more information.  ", "Total File Length Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		Exit Sub
+	End If
+	
+	'Check if File Name and Part Number Match
+	If pPN.Value <> DocumentFileName(oDoc) Then
+		answer = MessageBox.Show("The Part Number and File Name of the current file do not match.  " & vbLf & _
+			"For best results, please rename the file in Vault or correct the part number.  ", "File\Part Number Mismatch", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
+		If answer = vbCancel Then
+			Exit Sub
+		End If
+		
+	End If
+
+		'Check Part Number Length
+	If Len(pPN.Value) > 50 Then
+		MessageBox.Show("The entered part number is longer than 50 characters, and will be truncated in Epicor.  " & vbLf & _
+			"Please ensure that the part description in not included in the Part Number field.  Please correct and re-run config.  ", "Part Number Length",MessageBoxButtons.OK, MessageBoxIcon.Error)
+		If noWrite = False
+			oAppend.Write("Part Number Length Error")
+			oAppend.Flush()
+			oAppend.Close()
+		End If
+		Exit Sub
+	End If
+	
+	'///////////////////////////////////////////////////////
+	'Begin configuration
+	
+	'Check for invalid Revision number
+	If pRev.Value.Contains("NA") OrElse pRev.Value.Contains("N/A") Then
+		pRev.Value = "0"
+		MsgBox("Invalid revision number detected.  Revision has been changed to 0.  ")
+	End If
+	
+	'Configure tapped hole modeling parameters
+	oDoc.ModelingSettings.TappedHoleDiameter = 21764 'Tap Drill
+		'kThreadMajorDiameter = 21761
+		'kThreadMinorDiameter = 21762
+		'kThreadPitchDiameter = 21763
+		'kThreadTapDrillDiameter = 21764
+	
+	'Set 'make' or 'buy'
+	If Parameter("MB") = False Then
+		pMB.Value = "Buy"
+		'pOPS.Value = "" 'removed for e-parts, to allow OPS while remaning a "buy" (publish to method)
+	Else
+		pMB.Value = "Make"	
+	End If
+	
+	'concatenate Operations from parameters, to iProperty
+	pOPS.Value = (Parameter("OP1") & Parameter("OP2") & Parameter("OP3") & Parameter("OP4"))
+	
+	'check for outsource OPS and prompt user for correct material entry
+	If Parameter("OP1").Contains("OS") AndAlso Parameter("VendorSupplyMtl") = False Then
+		MessageBox.Show("Are you sure you need to supply material for the Outsource operation(s)?  " & vblf & _
+		"If you do not need to supply material, please check the ""Vendor Supplied Material"" check box, and re-run ""Smart Part Config"".  " & vbLf & _
+		"If you are not sure, check with your studio lead or the purchasing departament.  ","Material Error?", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+	End If
+	
+	'Router Material Checks
+	If Parameter("OP1").Contains("OP011") Then
+		If pMatDesc.Value.ToLower.Contains("bar") OrElse pMatDesc.Value.ToLower.Contains("tube") Then 
+			MessageBox.Show("Please check your material selection.  Only Sheet/Plate materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+		End If
+	End If	
+	
+	If Parameter("OP1").Contains("OP011") Then
+		If pMatDesc.Value.ToLower.Contains("steel") Then 
+			MessageBox.Show("Please check your material selection.  Only Wood/Plastic/Aluminum materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+		End If
+	End If
+	
+	'Mill Material Checks
+	If Parameter("OP1").Contains("OP010") Then
+		If pMatDesc.Value.ToLower.Contains("sheet") OrElse pMatDesc.Value.ToLower.Contains("plate") Then 
+			MessageBox.Show("Please check your material selection.  Sheet/Plate materials are not suitable for the Mill.  ", "Mill Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+		End If
+	End If
+	
+	If Parameter("OP1").Contains("OP010") Then
+		If pMatDesc.Value.ToLower.Contains("wood") Then 
+			MessageBox.Show("Please check your material selection.  Wood materials are not suitable for the Mill.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+		End If
+	End If
+	
+	'This should move to a new rule.  ????????
+	'Look for a configuration that appears to be an epart, and suggest adding ops, if necessary
+	Dim epart as Boolean = True
+	Dim debug as Boolean = True
+	If pPN.Value.Length >= 7 AndAlso pMB.Value = "Buy" AndAlso pOPS.Value.Length > 5 AndAlso debug = True Then
+		epart = InputRadioBox("Are you making an Epicor Manufactured Part?", "Yes, Products RULE!", "No, im a Douchebag", epart, "iLogic")
+		If epart = True Then
+			pOPS.Value = "OP027:CNC Program~" & pOPS.Value
+			'Prompt "Is this a control part"
+			cpart = InputRadioBox("Is this a Control Part?", "Yes, im awesome", "No, im a loser", True, "Control Rules" )
+			If cpart = True Then
+				pOPS.Value = pOPS.Value & "OP062:Control – Fabrication~"
+			End If
+			MsgBox("Operations appended.  Remember to mark the last operation as ""Final"".  " & vbLf & _
+			"If the part has in-house router or mill operations, check the iProperties for time estimates.  ")
+		End If
+	Else
+		'MsgBox("This part is not correctly configured to be an Epicor part.  "
+	End If
+	
+	'measure bounding box, flat pattern for sheet metal parts.  
+	If oDoc.SubType = "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}" Then ' Determine if part is Sheet Metal
+		'Measure part and write to parameters, if sheet metal
+		Parameter("XDIM") = SheetMetal.FlatExtentsLength
+		Parameter("YDIM") = SheetMetal.FlatExtentsWidth
+		Parameter("ZDIM") = Parameter("Thickness")
+	Else
+		'Measure part and write to parameters, if standard
+		Parameter("XDIM") = Measure.ExtentsLength
+		Parameter("YDIM") = Measure.ExtentsWidth
+		Parameter("ZDIM") = Measure.ExtentsHeight
+	End If
+		
+	'Pulls measurements into list and sorts according to size
+	sizes.Add(Parameter("XDIM"))
+	sizes.Add(Parameter("YDIM"))
+	sizes.Add(Parameter("ZDIM"))
+	sizes.Sort()
+	
+	'Outputs 2 largest dimensions to strings to lose units, converting the units from the file units to inches, 
+	'then write to iProperty
+	pLength.Value = String.Format(Round(oUOM.ConvertUnits(sizes(2), oUnitsEnum, 11272), 1))
+	pWidth.Value = String.Format(Round(oUOM.ConvertUnits(sizes(1), oUnitsEnum, 11272), 1))
+	pThick.Value = String.Format(Round(oUOM.ConvertUnits(sizes(0), oUnitsEnum, 11272), 1))
+
+	'Auto-fill Vendor Supplied Material value
+	If Parameter("VendorSupplyMtl") = True Then
+		pMatNum.Value = "--Vendor Supplied--"
+	End If
+
+	'Auto Fill creation date field with todays date
+	pCreateDate.Value = DateString
+	
+	'Set BOM Quantity to each (Frame generator length based parts)
+	oDoc.ComponentDefinition.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kEachBOMQuantity)
+	
+	'run rule to fill values for machining estimation
+	If ThisApplication.UserName = "Cody Redding" Then
+		iLogicVb.RunExternalRule("Time Estimate.iLogicVb") 'not ready for primetime
+	End If
+	
+	'Save Document
+	ThisDoc.Save
+	
+	'Write out part values, if writing is enabled.  
+	If noWrite = False
+		oAppend.WriteLine(pPN.Value & "," & pRev.Value & "," & pDesc.Value & "," & pMB.Value & "," & _ 
+		pLength.Value & "," & pWidth.Value & "," & pThick.Value & "," & pMatNum.Value & "," & _
+		pMatDesc.Value & "," & pOPS.Value)
+	End If
+
+	oAppend.Flush()
+	oAppend.Close()
+	
+End Sub 
+
+
+'/////////////////////////////////////Functions////////////////////////////////////////////////////////////
+Function DocumentFileName(Doc As Document) As String
+	Dim FilePath as String
+	FilePath = Doc.FullFileName
+	DocumentFileName = IO.Path.GetFileNameWithoutExtension(FilePath)
+	'MsgBox(DocumentFileName)
+End Function
+
+Function DocumentFileNameExt(Doc as Document) As String
+	DocumentFileNameExt = IO.Path.GetFileName(Doc.FullFileName)
+End Function

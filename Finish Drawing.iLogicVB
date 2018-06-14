@@ -1,0 +1,66 @@
+'AUTHOR: Cody Redding
+'CONTACT: codered741@gmail.com
+
+'"Finish Drawing" rule.  
+'completes drawing and prepares for posting.  
+' 1. Update drawing date (on part)
+' 2. Update Copied iProperties
+' 3. Check for 2d Laser/waterjet OS Ops, export DXF if found
+' 4. Export PDF
+' 5. Save File
+' 6. check in file
+Sub Main()
+	
+	Dim oDoc As DrawingDocument
+	
+	SharedVariable("LogVar") = "Finish Drawing"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	
+	Try
+		oDoc = ThisApplication.ActiveEditDocument
+	Catch
+		MessageBox.Show("Please run this rule from a Drawing file.  ", "Drawing Only Rule", MessageBoxButtons.OK)
+		Exit Sub
+	End Try
+	
+	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+	Dim oRefDocs As DocumentsEnumerator = oDoc.AllReferencedDocuments
+	Dim oRefDoc As Document = oRefDocs.Item(1)
+	Dim makeDxf AS Boolean = False
+	Dim notDone as Boolean = False
+	
+	invDesignInfo = oRefDoc.PropertySets.Item("Design Tracking Properties")
+	oRefCustomProps = oRefDoc.PropertySets.Item("Inventor User Defined Properties")
+
+	DateProp = invDesignInfo.Item("Creation Time")
+
+	DateProp.Value = DateString
+
+	oCommandMgr.ControlDefinitions.Item("UpdateCopiedModeliPropertiesCmd").Execute2(True)
+
+	Try
+	
+		prop = oRefCustomProps.Item("OPS")
+		
+		If oRefCustomProps.Item("OPS").Value.Contains("OS-") Then
+			iLogicVb.RunExternalRule("Export and Attach DXF")
+		End If
+		
+	Catch
+	
+		MessageBox.Show("Please check the Smart Part Config for this Part/Assembly.  The 'OPS' Parameter is missing. ", "Missing Parameter")
+		'Exit Sub
+		notDone = True
+	End Try
+
+	iLogicVb.RunExternalRule("Export and Attach PDF")
+
+	oDoc.Save
+	
+	If notDone = False Then
+		oCommandMgr.ControlDefinitions.Item("VaultCheckinTop").Execute
+	End If
+	
+	'ThisApplication.ActiveDocument.Close
+End Sub

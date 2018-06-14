@@ -1,0 +1,44 @@
+'define variables
+	SharedVariable("LogVar") = "Sub Assembly"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+Dim oAssyDoc As AssemblyDocument = ThisApplication.ActiveDocument 
+Dim docFName As String
+Dim docF2Name As String
+Dim docF3Name As String
+Dim FNamePos As Long
+Dim comps as ComponentOccurrences
+Dim comp As ComponentOccurrence
+Dim oDoc As Inventor.Document
+names = New List(Of String)
+'docFile = ThisDoc.Document
+
+
+'Loop through all subassemblies
+For Each oDoc In oAssyDoc.AllReferencedDocuments
+
+'Check to see if the file is a part or assembly. Only continue if assembly (because parts don't have components). 
+	If oDoc.DocumentType = kAssemblyDocumentObject Then
+		Try
+			comps = oDoc.ComponentDefinition.Occurrences
+			For Each comp In comps  
+				docFile = comp.definition.Document         
+				FNamePos = InStrRev(docFile.FullFileName, "\", - 1)      
+				docFName = Mid(docFile.FullFileName, FNamePos + 1, Len(docFile.FullFileName) - FNamePos)
+				If InStr(docFname, "-") = 8 Then     
+					splitPos= InStr(7, docFName, "-", -1)
+					docF2Name=Mid(docFName, splitPos +1, 100)
+					split2Pos=(Len(docF2Name) -4)
+					docF3Name=Left(docF2Name, split2Pos)                  
+					iProperties.Value(docFName, "Project", "Description") = docF3Name
+					iProperties.Value(docFName, "Project", "Part Number") =  Left(docFName, splitPos -1)
+				End If
+			Next
+			Catch ex As Exception
+				MsgBox(ex.Message, "This file does not have any sub-components. Click OK to continue")
+		End Try
+	End If
+Next
+
+'update the files
+InventorVb.DocumentUpdate()

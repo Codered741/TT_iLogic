@@ -1,0 +1,66 @@
+'declarations
+	Dim oAsmDoc as Document
+	Dim compOcc as ComponentOccurrence
+	customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
+	
+'Main
+	oAsmDoc = ThisApplication.ActiveDocument
+	
+	SharedVariable("LogVar") = "Export DWG"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	If oAsmDoc.FileSaveCounter >= 1 Then
+		' Are we in a Assembly or Part Document?
+		If oAsmDoc.DocumentType = kAssemblyDocumentObject Or oAsmDoc.DocumentType = kPartDocumentObject Then
+			
+			'Check for the property "DWG" and create it if not found.
+			Try
+				  prop = customPropertySet.Item("DWG")
+			Catch
+				  ' Assume error means not found
+				  customPropertySet.Add("", "DWG")
+				  iProperties.Value("Custom", "DWG") = False
+			End Try
+			
+			'Check iproperty to see if rule has been run, warn user if it has.  
+			If iProperties.Value("Custom", "DWG") = True Then
+				MessageBox.Show("File has already been created.  The file must be checked out to continue.  Are you sure you want to continue?", "Existing File!",MessageBoxButtons.OKCancel)
+			End If
+			
+			'Pull path and File Name, append desired file type, and execute save as.  
+			FileName = ThisDoc.PathAndFileName(False)
+			FileNameDWG = FileName & " ACAD SIMPLE.DWG"
+			ThisDoc.Document.SaveAs(FileNameDWG, True)
+			
+			If iProperties.Value("Custom", "DWG") = False Then
+
+				AttachFile = MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+			
+				If AttachFile = vbYes Then
+				
+
+						Dim oDoc As PartDocument
+						oDoc = ThisApplication.ActiveDocument
+						
+						Dim kOLEDocumentLinkObject As ObjectTypeEnum
+							kOLEDocumentLinkObject = 3331 'OLE link document
+						
+						Dim oRefOLE As ReferencedOLEFileDescriptors
+						oRefOLE = oDoc.ReferencedOLEFileDescriptors 
+						oRefOLE.Add(FileNameDWG, kOLEDocumentLinkObject)
+						iProperties.Value("Custom", "DWG") = True
+
+					End If
+			
+			End If
+			
+		Else
+		
+			MessageBox.Show("This command can only be used in an Assembly or Part.")
+			
+		End If
+	Else
+	
+		MessageBox.Show("File must be saved to continue.", "File Not Saved",MessageBoxButtons.OK,MessageBoxIcon.Error)
+
+	End If

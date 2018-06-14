@@ -1,0 +1,94 @@
+'AUTHOR: Cody Redding 
+'CONTACT: Codered741@gmail.com
+'LAST MODIFIED: 20170803
+'STATUS: Working, Ready to deploy.  Deployed 20170803
+'LICENSE: Free to redistribute without authorization
+
+'FUNCTION:
+'Update List of operations in OP1-4 Parameters.  
+
+Sub Main()
+	Dim TTParamsOPS As New List(Of String)
+
+	'Operations Parameters
+	TTParamsOPS.Add("OP1")
+	TTParamsOPS.Add("OP2")
+	TTParamsOPS.Add("OP3")
+	TTParamsOPS.Add("OP4")
+	
+	
+	If isPrtAsm(ThisApplication.ActiveDocument) = True Then
+		
+		For Each MVParam in TTParamsOPS
+			
+			TTOps(MVParam)
+		
+		Next
+	
+	End If
+	
+End Sub
+
+Private Sub TTOps(ParamName as String)
+	
+	Dim OPList(0 to 31) As String 
+	
+	OPList(0)=""" """
+	OPList(1)="""OP009:Lathe CNC~"""
+	OPList(2)="""OP010:Mill CNC~"""
+	OPList(3)="""OP011:Router CNC~"""
+	OPList(4)="""OP012:Mill Manual~"""
+	OPList(5)="""OP013:Lathe Manual~"""
+	OPList(6)="""OP014:Cutting~"""
+	OPList(7)="""OP015:OS - Milling~"""
+	OPList(8)="""OP016:Rolling~"""
+	OPList(9)="""OP017:Bending~"""
+	OPList(10)="""OP020:Paint~"""
+	OPList(11)="""OP022:OS - Turning~"""
+	OPList(12)="""OP023:OS - 2D Laser~"""
+	OPList(13)="""OP024:OS - Waterjetting~"""
+	OPList(14)="""OP034:OS - Forming~"""
+	OPList(15)="""OP035:OS - 3D Laser~"""
+	OPList(16)="""OP036:OS - TIG Welding~"""
+	OPList(17)="""OP038:OS - Turnkey Fabrication~"""
+	OPList(18)="""OP039:OS - Powder Coating~"""
+	OPList(19)="""OP040:OS – Anodizing~"""
+	OPList(20)="""OP041:OS - Injection Molding~"""
+	OPList(21)="""OP060:OS – Misc~"""
+	OPList(22)="""OP061:Softgoods - Fabrication~"""
+	OPList(23)="""OP062:Control – Fabrication~"""
+	OPList(24)="""OP071:OS - 2D Laser & Form~"""
+	OPList(25)="""OP080:OS – Plating~"""
+	OPList(26)="""OP086:OS – Polishing~"""
+	OPList(27)="""OP110:OS - Routing~"""
+	OPList(28)="""OP139:3D – Printing~"""
+	OPList(29)="""OP141:OS - Upholstery~"""
+	OPList(30)="""OP145:Post Processing~"""
+	OPList(31)="""OP146:Laser Cutting / Etching~"
+	
+	Dim Param As UserParameter
+	Param = ThisApplication.ActiveDocument.ComponentDefinition.Parameters.UserParameters.Item(ParamName)
+	Param.ExpressionList.ClearAll()
+	Param.ExpressionList.SetExpressionList(OPList, False)
+	
+End Sub
+
+Function isPrtAsm(ThisDoc As Document) As Boolean
+
+	Debug.Print (ThisDoc.DocumentType)
+
+	If ThisDoc.DocumentType = kAssemblyDocumentObject Then
+
+		isPrtAsm = True
+		
+	ElseIf ThisDoc.DocumentType = kPartDocumentObject Then
+
+		isPrtAsm = True
+		
+	Else
+
+		isPrtAsm = False
+		Debug.Print ("isPrtAsm found " & ThisDoc.DocumentType)
+	End If
+
+End Function

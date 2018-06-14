@@ -1,0 +1,150 @@
+Sub Main()
+	
+	SharedVariable("LogVar") = "Import Eplan DWG"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	
+	
+	
+	'check that rule in running in a drawing
+	If isDwg(ThisApplication.ActiveDocument) = False Then
+		MessageBox.Show("This rule can only be run in a drawing document.  ", "Error: File Type")
+		Exit Sub
+	End If 
+	
+	'Get the DWG translator
+	Dim oDWGTranslator As TranslatorAddIn
+	oDWGTranslator = ThisApplication.ApplicationAddIns.ItemById("{C24E3AC2-122E-11D5-8E91-0010B541CD80}") 
+	
+	'Prepare to create sheets
+	Dim oDoc As DrawingDocument
+	oDoc = ThisApplication.ActiveDocument
+
+	If oDoc.FileSaveCounter < 1 Then
+		MessageBox.Show("Please save the file before running this rule", "File not saved Error")
+		Exit Sub
+	End If
+	
+	'Check if SheetFormat Exists
+	Try
+		testsheet = oDoc.SheetFormats.Item("11x17 General")
+	Catch
+		MessageBox.Show("The proper sheet format does not exist!  Create Sheet Format '11x17 General' and try again.  ")
+		Exit Sub
+	End Try
+	
+	Dim oFormat As SheetFormat
+	oFormat = oDoc.SheetFormats.Item("11x17 General")
+
+	Dim oSheets As Sheets
+	oSheets = oDoc.Sheets
+	
+	Dim SheetCount As Long
+	SheetCount = oSheets.Count
+	
+	Dim oFiles as New List(Of String)
+	
+	Dim AddedSheets as Long
+	'AddedSheets = oFiles.Count
+
+	Dim oSheet As Sheet
+	oSheet = oDoc.Sheets.Item(SheetCount)
+	
+	'Configure dialog for file selection
+	Dim oFileDlg As inventor.FileDialog = Nothing
+	InventorVb.Application.CreateFileDialog(oFileDlg)
+	oFileDlg.Filter = "DWG\DXF Files (*.dwg;*.dxf)|*.dwg;*.dxf"'|All Files (*.*)|*.*"
+	oFileDlg.DialogTitle = "Select File(s) to Import"
+	oFileDlg.InitialDirectory = "P:\export_dxf\"
+	oFileDlg.CancelError = False
+	oFileDlg.MultiSelectEnabled = True
+	
+	'Open Dialog
+	oFileDlg.ShowOpen()
+
+	If oFileDlg.FileName <> "" Then
+
+		Dim fNames as Object
+		fNames = Split(oFileDlg.FileName, "|")
+
+		Dim curName As Object
+		
+		For Each curName In fNames
+			oFiles.Add (curName)
+		Next curName
+	Else
+		MessageBox.Show("No files were selected")
+		Return
+	End If
+
+	AddedSheets = oFiles.Count
+	
+	'insert sheet from format, and import file as sketch, for each file in list
+	For Each oFile In oFiles
+		
+		'dim pageTitle as Object
+		'pageTitle = InputBox("Enter page description", "User Input", "")
+		
+		oSheets.AddUsingSheetFormat(oFormat)  ',,,,pageTitle)
+		
+		SheetCount = SheetCount + 1
+		oSheet = oDoc.Sheets.Item(SheetCount)
+		
+		oSheet.Activate
+		
+		Dim oDataMedium As DataMedium
+		oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+		
+		' Specify a DWG file to import it into sketch
+		oDataMedium.FileName = oFile 
+		
+		Dim oTranslationContext As TranslationContext
+		oTranslationContext = ThisApplication.TransientObjects.CreateTranslationContext
+		oTranslationContext.Type = kFileBrowseIOMechanism
+		
+		' Get the sketch that the DWG will be imported into.
+		Dim oSk As DrawingSketch
+		oSk = oDoc.ActiveSheet.Sketches.Add
+
+		'Open the Sketch For edit.
+		oSk.Edit
+		
+		' Specify the sketch to import the DWG into.
+		oTranslationContext.OpenIntoExisting = oSk
+		
+		Dim oOptions As NameValueMap
+		oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+		
+		' Specify the layers to import
+		oOptions.Add ("SelectedLayers", "0")
+		oOptions.Add ("InvertLayersSelection", True)
+
+		' Do the translation.
+		Call oDWGTranslator.Open(oDataMedium, oTranslationContext, oOptions, oDoc)
+		
+		oSk.ExitEdit
+		
+	Next
+
+	oDoc.Save
+	
+	MessageBox.Show("Completed!  " & AddedSheets & " sheets were added.  ", "Complete")
+
+End Sub	
+	
+Function isDwg(ThisDoc as Document)
+	Debug.Print (ThisDoc.DocumentType)
+	
+	If ThisDoc.DocumentType = kDrawingDocumentObject
+		
+		isDwg = True
+		
+	Else 
+		
+		isDwg = False
+	
+	End If
+
+End Function
+
+

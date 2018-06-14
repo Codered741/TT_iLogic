@@ -1,0 +1,84 @@
+'Email PDF of Drawing
+
+Sub Main()
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	
+	SharedVariable("LogVar") = "Export and Email PDF"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")	
+	
+	If isSaved(oDoc) = True AndAlso isDwg(oDoc) = True Then
+		
+		oPath = ThisDoc.Path
+		oFileName = ThisDoc.FileName(False) 'without extension
+		oRevNum = iProperties.Value("Project", "Revision Number")
+		oPDFAddIn = ThisApplication.ApplicationAddIns.ItemById ("{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}")
+		oDocument = ThisApplication.ActiveDocument
+		oContext = ThisApplication.TransientObjects.CreateTranslationContext
+		oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+		oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+		oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+		If oPDFAddIn.HasSaveCopyAsOptions(oDataMedium, oContext, oOptions) Then
+			oOptions.Value("All_Color_AS_Black") = 0
+			oOptions.Value("Remove_Line_Weights") = 1
+			oOptions.Value("Vector_Resolution") = 400
+			oOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
+		End If
+
+		oDataMedium.FileName = oPath & "\" & oFileName & ".pdf"
+		'Publish document
+		Try
+			oPDFAddIn.SaveCopyAs(oDocument, oContext, oOptions, oDataMedium)
+		Catch
+			MessageBox.Show("You do not have permission to write to the PDF.  Please check the PDF out and try again.  ", "Write Access Denied", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			Exit Sub
+		End Try
+
+		SendMail( oDataMedium.FileName)
+		
+	Else
+		MsgBox("Please make sure file is a drawing and saved.  ")
+	End If
+	
+End Sub
+
+Function isDwg(ThisDoc as Document) As Boolean
+	Debug.Print (ThisDoc.DocumentType)
+	If ThisDoc.DocumentType = kDrawingDocumentObject
+		isDwg = True	
+	Else 
+		isDwg = False
+	End If
+End Function
+
+Sub SendMail(attach1 as String)
+	Dim oOApp
+	Dim oOMail
+	Dim olNs
+
+	oOApp = CreateObject("Outlook.Application")
+	oOMail = oOApp.CreateItem(olMailItem)
+	olNs = oOApp.GetNamespace("MAPI")
+	olNs.Logon
+
+	With oOMail
+		'.To = email
+		'.Subject = subject
+		'.Body = Body
+		
+		'Add attachments to the message
+		.attachments.Add (attach1)
+		'.attachments.Add (attach2)
+		'.attachments.Add (attach3)
+		
+		.Display
+		'.Send 'this causes a security error in outlook, not recommended.  
+	End With
+End Sub
+
+Function isSaved(Doc as Document) As Boolean
+	If Doc.FileSaveCounter >= 1 Then
+		Return True
+	Else
+		Return False
+	End If
+End Function

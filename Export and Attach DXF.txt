@@ -1,0 +1,180 @@
+﻿'AUTHOR: Cody Redding
+'CONTACT: codered741@gmail.com
+
+Sub Main()
+'declarations
+	'Access active drawing document
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+	
+	SharedVariable("LogVar") = "Export DXF"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+'Main	
+	If oDoc.FileSaveCounter >= 1 Then
+		' Are we in a Drawing Document?
+		If oDoc.DocumentType = kDrawingDocumentObject Then
+			
+		'declarations
+				
+			'get referenced documents of the drawing
+			Dim oRefDocs As DocumentsEnumerator = oDoc.AllReferencedDocuments
+			Dim oRefDoc As Document = oRefDocs.Item(1)
+			Dim oRefOLE As ReferencedOLEFileDescriptors = oDoc.ReferencedOLEFileDescriptors
+			
+			'access properties of first referenced file
+			oRefCPropSet = oRefDoc.PropertySets.Item("Inventor User Defined Properties")
+			oCPropSet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+			
+			'Check for property "DXF" on model and create it if not found.  
+			Try 
+				prop = oRefCPropSet.Item("DXF")
+			Catch
+				' Assume error means not found
+				oRefCPropSet.Add(False, "DXF")
+			End Try
+			
+			'Check for property "DXF" on drawing and create it if not found
+			Try
+				prop = oCPropSet.Item("DXF")
+			Catch
+				oCPropSet.Add(False, "DXF")
+			End Try
+		
+			Dim dDXF = oCPropSet.Item("DXF")
+			dim mDXF = oRefCPropSet.Item("DXF")
+
+			If VarType(dDXF.Value) <> vbBoolean Then
+				dDXF.Delete
+				oCPropSet.Add(False, "DXF")
+				dDXF = oCPropSet.Item("DXF")
+			End If
+
+			If VarType(mDXF.Value) <> vbBoolean Then
+				mDXF.Delete
+				oRefCPropSet.Add(False, "DXF")
+				mDXF = oRefCPropSet.Item("DXF")
+			End If
+			
+			'setup translator addin options
+			Dim DXFAddIn As TranslatorAddIn = ThisApplication.ApplicationAddIns.ItemById("{C24E3AC4-122E-11D5-8E91-0010B541CD80}")
+			Dim oContext As TranslationContext = ThisApplication.TransientObjects.CreateTranslationContext
+			oContext.Type = kFileBrowseIOMechanism
+			Dim oOptions As NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+			Dim oDataMedium As DataMedium = ThisApplication.TransientObjects.CreateDataMedium
+			Dim strIniFile As String = "C:\_vaultWIP\Designs\Templates\Library\iLogic\dxf_export.ini"
+			
+			'setup file names and prepare to attach as OLE
+			Dim FileNameDXF As String
+			'Dim oRefOLE As ReferencedOLEFileDescriptors
+			Dim kOLEDocumentLinkObject As ObjectTypeEnum = 3331 'OLE link document
+			
+			'get the sheets collection and setup the sheet object
+			Dim oSheets As Sheets = oDoc.Sheets
+			Dim oSheet As Sheet
+			
+			'count Existing DXF OLE's
+			Dim lDXF as New List(Of String)
+		
+			'Check iProperty to see if rule has been run, warn user if it as.  
+			If mDXF.Value = True OrElse dDXF.Value = True Then 'check model and drawing for "DXF" (legacy compatibility)
+				'check to ensure that DXF OLE's are actually attached.  
+				For Each oRef In oRefOLE
+					If oRef.OLEDocumentType = 3331 AndAlso oRef.FullFileName.Contains(".dxf") Then
+						lDXF.Add(oRef.FullFileName)
+					End If
+				Next	
+			
+				If lDXF.Count > 0 Then
+				'warn if file has already been created, and proceed according to user input
+					attacherr = MessageBox.Show("DXF has already been created.  The DXF(s) must be checked out to continue.  Are you sure you want to continue?", "Existing File!",MessageBoxButtons.OKCancel)
+					If attacherr = vbCancel Then
+						Return
+					End If
+					mDXF.Value = True
+				Else
+					'try to fix the problem
+					copiedFile = MessageBox.Show("It appears that either the drawing or part has been copied.  Is this True? ", "Copied file?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+					If copiedFile = vbYes Then
+						dDXF.Value = False
+						mDXF.Value = False
+						MessageBox.Show("Please re-run the rule.  ", "Reset complete", MessageBoxButtons.OK)
+						Exit Sub
+					Else
+						MessageBox.Show("There is something wrong.  Please contact a Vault Administrator for assistance.  ", "GET HELP!!!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+						ThisDoc.Launch("C:\_vaultWIP\Designs\Templates\Library\iLogic\Special\spiderdick.jpg")
+						Exit Sub
+					End If
+				End If
+			Else 
+				AttachFile = vbYes 'MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+			End If
+			
+			'Iterate through all sheets, exporting and attaching each sheet individually
+			For Each oSheet in oSheets
+				
+				oSheet.Activate
+				
+				'Get sheet number
+				oCurrentSheet = Mid(oDoc.ActiveSheet.Name, InStr(1, oDoc.ActiveSheet.Name, ":")+1)
+				
+				'get filename w/o extension
+				FileName = Left(oDoc.FullDocumentName, oDoc.FullDocumentName.Length - 4)
+				
+				'Append sheet number if more than one sheet
+				If oSheets.Count > 1 Then
+					FileNameDXF = FileName & " p" & oCurrentSheet & ".dxf"
+				Else 
+					FileNameDXF = FileName & ".dxf"
+				End If
+				
+				'Writes all configured options to translator addin
+				If DXFAddIn.HasSaveCopyAsOptions(oDoc, oContext, oOptions) Then
+						oOptions.Value("Export_Acad_IniFile") = strIniFile
+				End If
+				
+				'sets DXF filename to Translator addin
+				oDataMedium.FileName = FileNameDXF 
+				
+				'Check if we have write access to file, error if not
+				Try
+					DXFAddin.SaveCopyAs(oDoc, oContext, oOptions, oDataMedium) 'set all options 
+				Catch 
+					MessageBox.Show("WHAT DID I JUST SAY!!!!  You do not have permission to write to this file, likely because you DIDNT CHECK IT OUT!!!!  ", "Permission Denied", MessageBoxButtons.OK, MessageBoxIcon.Error)
+					Exit Sub
+				End Try
+				
+				'Attach exported sheet as OLE
+				If AttachFile = vbYes Then	
+				
+					'Attach DXF as OLE Object, if it hasnt already					
+					'oRefOLE = oDoc.ReferencedOLEFileDescriptors 
+					oRefOLE.Add(FileNameDXF, OLEDocumentTypeEnum.kOLEDocumentLinkObject)
+					mDXF.Value = True
+					
+				End If
+				
+			Next
+			
+			'Return to First Sheet
+			oSheet = oSheets.Item(1)
+			oSheet.Activate
+			
+			'update copied properties from model
+			oCommandMgr.ControlDefinitions.Item("UpdateCopiedModeliPropertiesCmd").Execute
+			oDoc.Save
+			
+		Else
+		
+			'if not a drawing
+			MessageBox.Show("This command can only be used in a Drawing.")
+			
+		End If
+		
+	Else
+	
+		'if file not saved (to make sure it has a filename)
+		MessageBox.Show("File must be saved to continue.", "File Not Saved",MessageBoxButtons.OK,MessageBoxIcon.Error)
+		
+	End If
+End Sub

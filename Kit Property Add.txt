@@ -1,0 +1,37 @@
+﻿
+	SharedVariable("LogVar") = "Kit Prop Add"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+Dim oDoc As Document = ThisApplication.ActiveDocument
+oCustomPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
+Dim KitProps As New List(Of String)
+	KitProps.Add("JobNum")
+	KitProps.Add("DETAILER")
+	KitProps.Add("Element_Desc")
+	KitProps.Add("DesignLevel")
+	
+If oDoc.DocumentType = kDrawingDocumentObject Then
+	MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
+Else If oDoc.DocumentType = kPresentationDocumentObject Then	
+	MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
+Else
+
+	For Each TTProp In KitProps
+		Try
+			prop = oCustomPropertySet.Item(TTProp)
+		Catch
+			oCustomPropertySet.Add("", TTProp)
+		End Try
+	Next
+	
+	'DesignLevel
+	Try 
+		param = Parameter.Param("DesignLevel")
+	Catch
+		oMyParameter=ThisApplication.ActiveDocument.ComponentDefinition.Parameters.UserParameters
+		oParameter=oMyParameter.AddByValue("DesignLevel", "", UnitsTypeEnum.kTextUnits)
+		MultiValue.SetList("DesignLevel", "Show", "Element", "Kit", "Stock")
+		Parameter("DesignLevel") = "Kit"
+	End Try
+End If
+

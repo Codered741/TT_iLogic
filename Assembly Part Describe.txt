@@ -1,0 +1,37 @@
+﻿'declarations
+	Dim oAsmDoc as Document
+	Dim compOcc as ComponentOccurrence
+	
+'Main
+	oAsmDoc = ThisApplication.ActiveEditDocument
+	
+	SharedVariable("LogVar") = "Assembly Part Describe"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	
+	' Are we in a Assembly Document?
+	If oAsmDoc.DocumentType <> kAssemblyDocumentObject Then
+		
+		MessageBox.Show("This command can only be used in an Assembly.")
+		
+	Else
+		
+		'Check that an object is selected
+		Try
+			compOcc = ThisDoc.Document.SelectSet.Item(1)
+		Catch
+			MessageBox.Show("You must select a component before running this rule.", "iLogic")
+			Return
+		End Try
+		
+		currName = iProperties.Value(compOcc.Name, "Project", "Description")
+		
+		'Prompt the User for Description
+		oDesc = InputBox("Enter New Part Description - Current : " & currName, "Part Description", "")
+		'Set the user input as the description
+		iProperties.Value(compOcc.Name, "Project", "Description") = oDesc
+		MessageBox.Show("Description changed.")
+
+		
+	End If
+

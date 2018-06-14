@@ -1,0 +1,68 @@
+﻿'declarations
+	Dim oAsmDoc as Document
+	Dim compOcc as ComponentOccurrence
+	customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
+	
+'Main
+	oAsmDoc = ThisApplication.ActiveDocument
+	
+	SharedVariable("LogVar") = "Export STP"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")	
+	
+	If oAsmDoc.FileSaveCounter >= 1 Then
+		' Are we in a Assembly or Part Document?
+		If oAsmDoc.DocumentType = kAssemblyDocumentObject Or oAsmDoc.DocumentType = kPartDocumentObject Then
+						
+			'Check for property "STP" and create it if not found.  
+			Try
+				  prop = customPropertySet.Item("STP")
+			Catch
+				  ' Assume error means not found
+				  customPropertySet.Add("", "STP")
+				  iProperties.Value("Custom", "STP") = False
+			End Try
+
+			'Check iproperty to see if rule has been run, warn user if it has.  
+			If iProperties.Value("Custom", "STP") = True Then
+
+				MessageBox.Show("File has already been created.  The file must be checked out to continue.  Are you sure you want to continue?", "Existing File!",MessageBoxButtons.OKCancel)
+
+			End If
+
+			'Pull path and File Name, append desired file type, and execute save as.  
+			FileName = ThisDoc.PathAndFileName(False)
+			FileNameSTP = FileName & ".stp"
+			ThisDoc.Document.SaveAs(FileNameSTP, True)
+			
+			If iProperties.Value("Custom", "STP") = False
+
+				AttachFile = MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+			
+				If AttachFile = vbYes Then
+				
+					
+					Dim oDoc As PartDocument
+						oDoc = ThisApplication.ActiveDocument
+						
+						Dim kOLEDocumentLinkObject As ObjectTypeEnum
+							kOLEDocumentLinkObject = 3331 'OLE link document
+						
+						Dim oRefOLE As ReferencedOLEFileDescriptors
+						oRefOLE = oDoc.ReferencedOLEFileDescriptors 
+						oRefOLE.Add(FileNameSTP, kOLEDocumentLinkObject)
+						iProperties.Value("Custom", "STP") = True
+
+					End If
+				
+				End If
+			
+		Else
+		
+			MessageBox.Show("This command can only be used in an Assembly or Part.")
+
+		End If
+	Else
+	
+		MessageBox.Show("File must be saved to continue.", "File Not Saved",MessageBoxButtons.OK,MessageBoxIcon.Error)
+
+	End If

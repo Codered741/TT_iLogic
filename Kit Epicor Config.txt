@@ -1,0 +1,77 @@
+﻿Sub Main()
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	Dim Fail As boolean = False
+	Dim oCreateDate As Date = DateString
+	
+	SharedVariable("LogVar") = "Kit Epicor Config"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")1
+	
+	If oDoc.DocumentType = kAssemblyDocumentObject Then
+		If Parameter("DesignLevel") <> "Stock" AndAlso Len(iProperties.Value("Project", "Part Number")& "-" & iProperties.Value("Project", "Description")) > 50 then
+			
+			Select Case Parameter("DesignLevel")
+				Case "Kit"
+					pnLengthAllow = 12
+				Case "Element"
+					pnLengthAllow = 9
+				Case "Show"
+					pnLengthAllow = 6
+				Case Else
+					MessageBox.Show("Please select a Design Level", "Design Level")
+					Fail = True
+			End Select
+			
+			If Len(iProperties.Value("Project", "Part Number")) > pnLengthAllow Then
+			
+				MessageBox.Show("Part number contains too many characters for the selected Design Level.  ", "Description Length Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)
+				Fail = True
+				
+			End If
+			
+			If Len(iProperties.Value("Project", "Description")) > 37 Then
+			
+				MessageBox.Show("Description cannot contain more than 37 characters.  ", "Description Error", MessageBoxButtons.OK, MessageBoxIcon.Exclamation)
+				Fail = True
+				
+			End If
+			
+		Else
+		
+			'Copy the Part Number(User filled as the epicor job number) to the custom field JobNum, to be read by epicor, through Vault. 
+			iProperties.Value("Custom", "JobNum") = iProperties.Value("Project", "Part Number")
+			
+		End If
+
+		
+		'Write design level property from multi value list parameter
+		iProperties.Value("Custom", "DesignLevel") = Parameter("DesignLevel")
+
+		'Auto Fill creation date field with todays date
+
+		iProperties.Value("Project", "Creation Date") = oCreateDate
+		
+		If oDoc.ComponentDefinition.BOMStructure <> 51970 Then
+		
+			MessageBox.Show("Your BOM Structure not set to 'Normal'.  Changing the BOM structure to Normal")
+			oDoc.ComponentDefinition.BOMStructure = 51970
+			
+		End If
+		
+		If Fail = False Then 
+		
+			'display confirmation of successful config
+			MessageBox.Show("Configuration was Successful!", "Configuration",MessageBoxButtons.OK)
+			
+		Else
+		
+			MessageBox.Show("There was an error in configuration.  Please check your entries and try again. ", "Configuration Error",MessageBoxButtons.OK,MessageBoxIcon.Error)
+			
+		End If
+		
+	Else
+	
+		MessageBox.Show("This configuration can only be done in an assembly.  Please open the Kit Assembly File, re-enter the required information, and re-run the rule.  ", "Incorrect File Type", MessageBoxButtons.OK)
+		
+	End If
+	
+End Sub

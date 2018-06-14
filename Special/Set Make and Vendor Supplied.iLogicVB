@@ -1,0 +1,20 @@
+﻿Dim oDoc As Document = ThisApplication.ActiveDocument
+Dim comps As SelectSet = oDoc.SelectSet
+Dim comp As ComponentOccurrence
+'If there are selected components we can do something, otherwise we're done
+
+If comps.count > 0 Then   
+
+numParts = comps.count
+
+	For Each comp In comps
+		Parameter(comp.Name, "VendorSupplyMtl") = True
+		Parameter(comp.Name, "MB") = True
+		iProperties.Value(comp.Name, "Custom", "Material Number") = "--Vendor Supplied--"
+	Next
+	
+	MessageBox.Show(numParts & " parts were successfully changed", "Success")
+	
+Else
+	MessageBox.Show("There are no components selected", "Error")
+End If

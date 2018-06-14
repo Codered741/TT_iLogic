@@ -1,0 +1,85 @@
+
+' This is an example iLogic rule by Luke Davenport on Cadline Community
+' It creates a 'folder browser dialog' to allow user to pick a directory location
+' This selected directory location is then used for a generic PDF export operation
+' Please modify to suit your requirements....
+
+Imports System.Windows.Forms
+
+Sub Main()
+
+	SharedVariable("LogVar") = "Export Model as DWG to set Location"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")	
+
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+	
+	If isPrtAsm(oDoc) = False Then
+		MsgBox("rule must be run from a saved part or assembly!")
+		Exit Sub
+	End If
+
+	proceed = MessageBox.Show("Are you sure you want to export this to the Showfile?  This may take some time.  ", "Export to Showfile", MessageBoxButtons.YesNo)
+	
+	If Proceed <> vbYes Then
+		Exit Sub
+	End If
+	
+	Try 
+		prop = customPropertySet.Item("exportPath")
+	Catch
+		customPropertySet.Add("", "exportPath")
+	End Try
+	
+	oProp = customPropertySet.Item("exportPath")
+
+	If oProp.Value = "" Then
+			oProp.Value = ChooseFolderLocation(oDoc)
+	End If
+	
+	FileName = ThisDoc.FileName(False)
+	FileNameDWG = oProp.Value & FileName & " ACAD SIMPLE.dwg"
+	
+	Try
+		ThisDoc.Save
+	Catch
+		MsgBox("You do not have write permission for this document.  The selected path may not be saved.  ")
+	End Try
+	
+	ThisDoc.Document.SaveAs(FileNameDWG, True)
+	MsgBox(FileNameDWG & " has been exported.  ")
+	
+End Sub
+
+'Functions
+
+Function ChooseFolderLocation(oDoc as Document)
+	' Define folder browse dialog
+	Dim Dialog = New FolderBrowserDialog()
+
+	' Set options for folder browser dialog
+	Dialog.SelectedPath = "R:\"
+	Dialog.ShowNewFolderButton = True
+	Dialog.Description = "Choose Folder for Export..."
+	
+	' Show dialog box
+	If DialogResult.OK = Dialog.ShowDialog() Then
+		' User clicked 'ok' on dialog box - capture the export path
+		ChooseFolderLocation = Dialog.SelectedPath & "\"	
+	Else
+		' User clicked 'cancel' on dialog box - exit
+		ChooseFolderLocation = ""
+	End If
+End Function
+
+Function isPrtAsm(ThisDoc As Document) As Boolean
+	Debug.Print (ThisDoc.DocumentType)
+	If ThisDoc.DocumentType = kAssemblyDocumentObject Then
+		isPrtAsm = True
+	ElseIf ThisDoc.DocumentType = kPartDocumentObject Then
+		isPrtAsm = True
+	Else
+		isPrtAsm = False
+		Debug.Print ("isPrtAsm found " & ThisDoc.DocumentType)
+	End If
+End Function

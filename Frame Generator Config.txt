@@ -1,0 +1,17 @@
+﻿	SharedVariable("LogVar") = "Frame Generator Config"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+
+iProperties.Value("Project", "Part Number") = ThisDoc.FileName(False)
+
+start:
+Try 
+	Parameter("EditPN") = False
+Catch
+	iLogicVB.RunExternalRule("Smart Part Property Add.Txt")
+	GoTo start
+End Try
+
+iLogicForm.ShowGlobal("Smart Part Config")
+
+ThisDoc.Document.ComponentDefinition.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kEachBOMQuantity)

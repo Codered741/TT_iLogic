@@ -1,0 +1,23 @@
+﻿
+	SharedVariable("LogVar") = "Epicor Material Search"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+AddReference "C:\ProgramData\Tait Towers\Inventor Epicor Material Search\TaitTowers.Inventor.Epicor.dll" 
+Sub Main()
+localTrigger = iTrigger0
+'create a form Of VB.NET 
+Using dlg As New TaitTowers.Inventor.Epicor.Forms.PartSearchForm
+
+' assign the param and property to the form
+  Dim i As Integer = dlg.ShowDialog()
+
+  If i <> vbOK Then Return
+
+    iProperties.Value("Custom", "MATERIAL NUMBER") = dlg.MaterialNum
+	iProperties.Value("Custom", "MATERIAL DESCRIPTION") = dlg.MaterialDesc
+
+End Using
+
+iLogicVb.UpdateWhenDone = True
+
+End Sub

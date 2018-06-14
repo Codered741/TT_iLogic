@@ -1,0 +1,117 @@
+﻿Sub Main()
+	
+	SharedVariable("LogVar") = "Open Drawing of Active Document"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+	OpenDrawing()
+	
+End Sub
+
+
+Sub OpenDrawing()
+    'check that the active document is an assembly file
+
+    Debug.Print (GetActiveDoc.fullFilename)
+    
+    Dim oDoc As Inventor.Document
+    oDoc = GetActiveDoc
+    
+	Dim dwgDoc As String
+	
+    If oDoc.fullFilename <> "" Then
+    
+        If isPrtAsm(oDoc) = False Then
+        
+           MsgBox ("Please run this rule from a Part or Assembly file.")
+                
+           Exit Sub
+            
+        Else
+        
+            If FindDrawingFile(oDoc) <> "" Then
+        
+                dwgDoc = FindDrawingFile(oDoc)
+        
+            Else
+        
+                MsgBox ("Unable to find a drawing for " & oDoc.fullFilename)
+                Exit Sub
+        
+            End If
+        
+            ThisApplication.Documents.Open (dwgDoc)
+            
+        End If
+    Else
+        MsgBox ("No active document")
+        Exit Sub
+        
+    End If
+
+End Sub
+
+Public Function GetActiveDoc() As Inventor.Document
+
+    GetActiveDoc = ThisApplication.ActiveDocument
+    
+End Function
+
+Function isPrtAsm(ThisDoc As Document) As Boolean
+
+Debug.Print (ThisDoc.DocumentType)
+
+If ThisDoc.DocumentType = kAssemblyDocumentObject Then
+
+    isPrtAsm = True
+    
+ElseIf ThisDoc.DocumentType = kPartDocumentObject Then
+
+    isPrtAsm = True
+    
+Else
+
+    isPrtAsm = False
+    Debug.Print ("isPrtAsm found " & ThisDoc.DocumentType)
+End If
+
+End Function
+
+' Find the drawing for the specified part of assembly.
+Function FindDrawingFile(PartOrAssemblyDoc As Document)
+    Dim fullFilename As String
+    fullFilename = PartOrAssemblyDoc.fullFilename
+   
+    ' Extract the path from the full filename.
+    Dim path As String
+    path = ThisApplication.DesignProjectManager.ActiveDesignProject.WorkspacePath 'Left$(fullFilename, InStrRev(fullFilename, "\"))
+   
+    ' Extract the filename from the full filename.
+    Dim filename As String
+    filename = Right$(fullFilename, Len(fullFilename) - InStrRev(fullFilename, "\"))
+   
+    ' Replace the extension with "dwg"
+    filename = Left$(filename, InStrRev(filename, ".")) & "dwg"
+   
+    ' Find if the drawing exists.
+    Dim drawingFilename As String
+    drawingFilename = ThisApplication.DesignProjectManager.ResolveFile(path, filename)
+   
+    ' Check the result.
+    If drawingFilename = "" Then
+        ' Try again with idw extension.
+        filename = Left$(filename, InStrRev(filename, ".")) & "idw"
+       
+        ' Find if the drawing exists.
+        drawingFilename = ThisApplication.DesignProjectManager.ResolveFile(path, filename)
+   
+        ' Return the result.
+        If drawingFilename <> "" Then
+            FindDrawingFile = drawingFilename
+        Else
+            FindDrawingFile = ""
+        End If
+    Else
+        ' Return the result.
+        FindDrawingFile = drawingFilename
+    End If
+End Function

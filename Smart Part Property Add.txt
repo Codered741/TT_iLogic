@@ -1,0 +1,288 @@
+﻿'AUTHOR: Cody Redding 
+'CONTACT: Codered741@gmail.com
+
+Sub Main()
+
+	SharedVariable("LogVar") = "Smart Part Prop Add"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	'Init
+	Dim oDoc As Document = ThisApplication.ActiveEditDocument
+	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+	
+	Dim TTPropsTxt As New List(Of String)
+	Dim TTPropsBool As New List(Of String)
+	
+	Dim TTParamsIn As New List(Of String)
+	Dim TTParamsBool As New List(Of String)
+	'Dim TTParamsUL As New List(Of String)
+	
+	Dim TTParamsOPS As New List(Of String)
+	Dim CustomGroupName As String = "TAIT Smart Part"
+	Dim pSPVer
+	Dim pSP
+	Dim VersionNum as String = "2.2"
+	
+	'Add Values To List
+	'String iProperties - for smart part
+	TTPropsTxt.Add("DETAILER")
+	TTPropsTxt.Add("LENGTH")
+	TTPropsTxt.Add("WIDTH")
+	TTPropsTxt.Add("THICKNESS")
+	TTPropsTxt.Add("MATERIAL NUMBER")
+	TTPropsTxt.Add("MATERIAL DESCRIPTION")
+	TTPropsTxt.Add("NOTES")
+	TTPropsTxt.Add("OPS")
+	TTPropsTxt.Add("MakeBuy")
+	TTPropsTxt.Add("HasDwg")
+	TTPropsTxt.Add("exportPath")
+	TTPropsTxt.Add("SPVer")
+	
+	'For machining estimation
+	TTPropsTxt.Add("MilledFaceCount")
+	TTPropsTxt.Add("MATERIAL REMOVED")
+	TTPropsTxt.Add("HolesTapped")
+	TTPropsTxt.Add("Holes")
+	TTPropsTxt.Add("Edge Count")
+	TTPropsTxt.Add("Perimeter")
+	TTPropsTxt.Add("RoutTime")
+	TTPropsTxt.Add("MillTime")
+	
+	'Add Boolean iProperties
+	TTPropsBool.Add("SP")
+
+	'Inch Parameters
+	TTParamsIn.Add("XDIM")
+	TTParamsIn.Add("YDIM")
+	TTParamsIn.Add("ZDIM")
+	
+	'ul Params
+	'TTParamsUL.Add("HoleCountTapped")
+	'TTParamsUL.Add("HoleCount")
+
+	'Boolean Parameters
+	TTParamsBool.Add("MB")
+	TTParamsBool.Add("VendorSupplyMtl")
+	TTParamsBool.Add("EditPN")
+	
+	'Operations Parameters
+	TTParamsOPS.Add("OP1")
+	TTParamsOPS.Add("OP2")
+	TTParamsOPS.Add("OP3")
+	TTParamsOPS.Add("OP4")
+	
+	'Main
+	'Check that the document Is a model file
+	If oDoc.DocumentType = kPartDocumentObject OrElse oDoc.DocumentType = kAssemblyDocumentObject Then
+		
+		PropAdd(TTPropsTxt, "TXT")
+		PropAdd(TTPropsBool, "BOOL")
+		ParamAdd(TTParamsIn, "IN", CustomGroupName)
+		ParamAdd(TTParamsBool, "BOOL", CustomGroupName)
+		'ParamAdd(TTParamsUL, "UL", CustomGroupName)
+		OPSMVParamAdd(TTParamsOPS, CustomGroupName)
+		
+		
+		CustomParamGroup(oDoc, TTParamsBool, CustomGroupName)
+		CustomParamGroup(oDoc, TTParamsIn, CustomGroupName)
+		CustomParamGroup(oDoc, TTParamsOPS, CustomGroupName)
+		
+		pSP = customPropertySet.Item("SP")
+		pSPVer = customPropertySet.Item("SPVer")
+		
+		pSPVer.Value = VersionNum
+		
+		If pSP.Value = False Then
+			Parameter("MB") = True
+			'TTParamsBool.Add("VendorSupplyMtl") = False
+			'Parameter("EditPN") = False
+			
+			pSP.Value = True
+		End If
+		
+	Else
+		MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
+	End If
+	
+	oDoc.ModelingSettings.TappedHoleDiameter = 21764
+	'kThreadMajorDiameter = 21761
+	'kThreadMinorDiameter = 21762
+	'kThreadPitchDiameter = 21763
+	'kThreadTapDrillDiameter = 21764
+	
+	
+End Sub
+	
+'''''''''''''''''''''''''Subroutines
+Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
+	
+	Dim OPList(0 to 32) As String 
+	
+	OPList(0)=""" """
+	OPList(1)="""OP009:Lathe CNC~"""
+	OPList(2)="""OP010:Mill CNC~"""
+	OPList(3)="""OP011:Router CNC~"""
+	OPList(4)="""OP012:Mill Manual~"""
+	OPList(5)="""OP013:Lathe Manual~"""
+	OPList(6)="""OP014:Cutting~"""
+	OPList(7)="""OP015:OS - Milling~"""
+	OPList(8)="""OP016:Rolling~"""
+	OPList(9)="""OP017:Bending~"""
+	OPList(10)="""OP020:Paint~"""
+	OPList(11)="""OP022:OS - Turning~"""
+	OPList(12)="""OP023:OS - 2D Laser~"""
+	OPList(13)="""OP024:OS - Waterjetting~"""
+	OPList(14)="""OP027:CNC Program~"""
+	OPList(15)="""OP034:OS - Forming~"""
+	OPList(16)="""OP035:OS - 3D Laser~"""
+	OPList(17)="""OP036:OS - TIG Welding~"""
+	OPList(18)="""OP038:OS - Turnkey Fabrication~"""
+	OPList(19)="""OP039:OS - Powder Coating~"""
+	OPList(20)="""OP040:OS – Anodizing~"""
+	OPList(21)="""OP041:OS - Injection Molding~"""
+	OPList(22)="""OP060:OS – Misc~"""
+	OPList(23)="""OP061:Softgoods - Fabrication~"""
+	OPList(24)="""OP062:Control – Fabrication~"""
+	OPList(25)="""OP071:OS - 2D Laser & Form~"""
+	OPList(26)="""OP080:OS – Plating~"""
+	OPList(27)="""OP086:OS – Polishing~"""
+	OPList(28)="""OP110:OS - Routing~"""
+	OPList(29)="""OP139:3D – Printing~"""
+	OPList(30)="""OP141:OS - Upholstery~"""
+	OPList(31)="""OP145:Post Processing~"""
+	OPList(32)="""OP146:Laser Cutting / Etching~"""
+	
+	Dim OPx As Parameter
+	
+	Dim UserParams As UserParameters
+	Dim oCompDef as ComponentDefinition = ThisApplication.ActiveEditDocument.ComponentDefinition
+	UserParams = oCompDef.Parameters.UserParameters
+	' Dim ParamGroup as CustomParameterGroup
+	
+	' Try
+		' ParamGroup = oCompDef.Parameters.CustomParameterGroups.Item(GroupName)
+	' Catch
+		' ParamGroup = oCompDef.Parameters.CustomParameterGroups.Add(GroupName, GroupName)
+	' End Try
+	
+	For Each pmtr In Params 
+
+		Try 
+			param = Parameter.Param(pmtr)
+		Catch
+			oParameter=UserParams.AddByValue(pmtr, " ", UnitsTypeEnum.kTextUnits)
+			' ParamGroup.Add(oParameter)
+		End Try
+		
+		OPx = ThisApplication.ActiveEditDocument.ComponentDefinition.Parameters.UserParameters.Item(pmtr)
+		
+		OPx.ExpressionList.ClearAll()
+		OPx.ExpressionList.SetExpressionList(OPList, False)	
+	
+	Next
+	
+End Sub
+
+Public Sub PropAdd(Props as List(Of String), UnitType as String)
+	'Init
+	Dim oDoc As Document = ThisApplication.ActiveEditDocument
+	customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
+	
+	For Each prop In Props
+		If UnitType = "BOOL" Then
+		
+			Try
+				iprop = customPropertySet.Item(prop)
+			Catch
+				' Assume error means not found
+				customPropertySet.Add("Custom", prop)
+				iProperties.Value("Custom", prop) = False
+			End Try
+			
+		Else If UnitType = "TXT"
+		
+			Try
+				iprop = customPropertySet.Item(prop)
+			Catch
+				' Assume error means not found
+				customPropertySet.Add("Custom", prop)
+				iProperties.Value("Custom", prop) = ""
+			End Try
+		
+		End If
+		
+	Next
+	
+End Sub
+
+Sub ParamAdd(Params As List(Of String), UnitType As String, GroupName as String)
+	'Init
+	Dim oPartDoc As Document = ThisApplication.ActiveEditDocument
+	Dim oCompDef As ComponentDefinition = oPartDoc.ComponentDefinition
+	oMyParameter = oCompDef.Parameters.UserParameters
+	' Dim ParamGroup as CustomParameterGroup
+	
+	' Try
+		' ParamGroup = oCompDef.Parameters.CustomParameterGroups.Item(GroupName)
+	' Catch
+		' ParamGroup = oCompDef.Parameters.CustomParameterGroups.Add(GroupName, GroupName)
+	' End Try
+
+	'Main
+	If UnitType = "BOOL" Then	
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oParameter=oMyParameter.AddByValue(pmtr, False, "BOOLEAN")
+				' ParamGroup.Add(oParameter)
+			End Try
+		Next 
+	Else If UnitType = "IN" Then
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oParameter=oMyParameter.AddByValue(pmtr, 0 in, UnitsTypeEnum.kInchLengthUnits)
+				' ParamGroup.Add(oParameter)
+			End Try
+		Next 
+	Else If UnitType = "TXT"
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oParameter=oMyParameter.AddByValue(pmtr, " ", UnitsTypeEnum.kTextUnits)
+				' ParamGroup.Add(oParameter)
+			End Try
+		Next 
+	Else If UnitType = "UL" Then
+		For Each pmtr In Params
+			Try
+				param = Parameter.Param(pmtr)
+			Catch
+				oParameter=oMyParameter.AddByValue(pmtr, 0 , UnitsTypeEnum.kUnitlessUnits)
+				' ParamGroup.Add(oParameter)
+			End Try
+		Next 
+	End If
+End Sub
+
+Sub CustomParamGroup(Doc as Document, Params as List(of String), GroupName As String)
+
+	Dim oCompDef as ComponentDefinition = Doc.ComponentDefinition
+	UserParams = oCompDef.Parameters.UserParameters
+	
+	Dim ParamGroup as CustomParameterGroup
+	
+	Try
+		ParamGroup = oCompDef.Parameters.CustomParameterGroups.Item(GroupName)
+	Catch
+		ParamGroup = oCompDef.Parameters.CustomParameterGroups.Add(GroupName, GroupName)
+	End Try
+
+	For Each param in Params
+		ParamGroup.Add(UserParams.Item(param))
+	Next
+	
+End Sub

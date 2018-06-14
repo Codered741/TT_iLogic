@@ -1,0 +1,48 @@
+﻿Sub Main()
+	Dim oDoc As Document = ThisApplication.ActiveDocument
+	Dim comps As SelectSet = oDoc.SelectSet
+	Dim comp As ComponentOccurrence
+	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+	Dim oRefOLE As ReferencedOLEFileDescriptors = oDoc.ReferencedOLEFileDescriptors
+	Dim TTParamsOPS As New List(Of String)
+	'If there are selected components we can do something, otherwise we're done
+
+
+	TTParamsOPS.Add("OP1")
+	TTParamsOPS.Add("OP2")
+	TTParamsOPS.Add("OP3")
+	TTParamsOPS.Add("OP4")
+
+	If comps.count > 0 Then   
+
+	numParts = comps.count
+
+		For Each comp In comps
+			oCommandMgr.ControlDefinitions.Item("VaultCheckout").Execute
+			Dim OPSCurrent As String = iProperties.Value(comp.Name, "Custom", "OPS")
+			If OPSCurrent.Contains("OP145:Post Processing~") Then
+				MsgBox("Post Processing is already an OP")
+			Else
+				If Parameter(comp.Name, "OP2") = "" Then
+					OPAdd(comp, "OP2")
+				Else If Parameter(comp.Name, "OP3") = ""
+					OPAdd(comp, "OP3")
+				Else If Parameter(comp.Name, "OP4") = ""
+					OPAdd(comp, "OP4")
+				Else
+					MsgBox("All OPS are full!")
+				End If
+			End If
+		Next
+		
+		MessageBox.Show(numParts & " parts were successfully changed", "Success")
+		
+	Else
+		MessageBox.Show("There are no components selected", "Error")
+	End If
+End Sub
+
+Public Sub OPAdd(comp As ComponentOccurrence, OPName as String)
+	Parameter(comp.Name, OPName) = "OP145:Post Processing~"
+	iProperties.Value(comp.Name, "Custom", "OPS") = (Parameter(comp.Name, "OP1") & Parameter(comp.Name, "OP2") & Parameter(comp.Name, "OP3") & Parameter(comp.Name, "OP4"))
+End Sub

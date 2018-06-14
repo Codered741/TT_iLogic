@@ -1,0 +1,34 @@
+	SharedVariable("LogVar") = "Main Assy"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+docFile = ThisDoc.Document
+
+
+
+Dim docFName As String
+Dim docF2Name As String
+Dim docF3Name As String
+Dim FNamePos As Long
+Dim comps as ComponentOccurrences
+comps = docFile.ComponentDefinition.Occurrences
+names = New List(Of String)
+
+Dim comp As ComponentOccurrence
+
+For Each comp In comps  
+        docFile = comp.definition.Document         
+         FNamePos = InStrRev(docFile.FullFileName, "\", - 1)      
+         docFName = Mid(docFile.FullFileName, FNamePos + 1, Len(docFile.FullFileName) - FNamePos)
+If InStr(docFname, "-") = 8 Then     
+         splitPos= InStr(7, docFName, "-", -1)
+        docF2Name=Mid(docFName, splitPos +1, 100)
+        split2Pos=(Len(docF2Name) -4)
+        docF3Name=Left(docF2Name, split2Pos)                  
+             iProperties.Value(docFName, "Project", "Description") = docF3Name
+            iProperties.Value(docFName, "Project", "Part Number") =  Left(docFName, splitPos -1)
+End If
+
+Next
+
+
+ InventorVb.DocumentUpdate()

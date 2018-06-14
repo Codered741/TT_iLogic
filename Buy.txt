@@ -1,0 +1,15 @@
+﻿	SharedVariable("LogVar") = "Buy"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+
+customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
+'Check for and Add iProperties that are missing.  
+
+'Make-buy
+Try
+      prop = customPropertySet.Item("MakeBuy")
+Catch
+      ' Assume error means not found
+      customPropertySet.Add("", "MakeBuy")
+End Try
+
+iProperties.Value("Custom", "MakeBuy") = "Buy"
