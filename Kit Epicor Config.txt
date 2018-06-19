@@ -4,7 +4,7 @@
 	Dim oCreateDate As Date = DateString
 	
 	SharedVariable("LogVar") = "Kit Epicor Config"
-	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")1
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
 	
 	If oDoc.DocumentType = kAssemblyDocumentObject Then
 		If Parameter("DesignLevel") <> "Stock" AndAlso Len(iProperties.Value("Project", "Part Number")& "-" & iProperties.Value("Project", "Description")) > 50 then
