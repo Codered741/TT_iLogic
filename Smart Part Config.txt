@@ -13,6 +13,7 @@ Sub Main()
 	Dim TString as String
 	Dim VersionNum as String = "2.2"
 	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
+	Dim MsgComp as String = ""
 	
 	'Enforce the correct Application Options (Content Center)
 	ThisApplication.ContentCenterOptions.SetAccessOption(81154)
@@ -91,6 +92,8 @@ Sub Main()
 		MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
 		If noWrite = False Then
 			oAppend.WriteLine("ERROR Drawing Document")
+			oAppend.Flush()
+			oAppend.Close()
 		End If
 		Exit Sub
 	End If
@@ -99,6 +102,8 @@ Sub Main()
 		MessageBox.Show("Smart Part Config can only be run in a Part or Assembly", "File Type Error")
 		If noWrite = False Then
 			oAppend.WriteLine("ERROR Presentation Document")
+			oAppend.Flush()
+			oAppend.Close()
 		End If
 		Exit Sub
 	End If
@@ -112,6 +117,11 @@ Sub Main()
 		MessageBox.Show("This file is saved in a folder path that is too long for Vault.  " & vbLf & _
 			"Please reduce the depth of the folder structure, or shorten the folder name lengths.  " & vbLf & _ 
 			"This Part was not configured.  See a Vault Admin for more information.  ", "Total File Length Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		If noWrite = True
+			oAppend.WriteLine("ERROR Total File Length")
+			oAppend.Flush()
+			oAppend.Close()
+		End If
 		Exit Sub
 	End If
 	
@@ -119,6 +129,7 @@ Sub Main()
 	If pPN.Value <> DocumentFileName(oDoc) Then
 		answer = MessageBox.Show("The Part Number and File Name of the current file do not match.  " & vbLf & _
 			"For best results, please rename the file in Vault or correct the part number.  ", "File\Part Number Mismatch", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
+			MsgComp = MsgComp & "ERROR File\Part Number Mismatch|"
 		If answer = vbCancel Then
 			Exit Sub
 		End If
@@ -141,10 +152,13 @@ Sub Main()
 	'Begin configuration
 	
 	'Check for invalid Revision number
-	If pRev.Value.Contains("NA") OrElse pRev.Value.Contains("N/A") Then
+	Try 
+		rev = CInt(pRev.Value)
+	Catch
 		pRev.Value = "0"
-		MsgBox("Invalid revision number detected.  Revision has been changed to 0.  ")
-	End If
+		MsgBox("Invalid revision number detected.  Only numerical revisions are allowed.  Revision has been changed to 0.  ")
+		MsgComp = MsgComp & "ERROR Revision Number|"
+	End Try
 	
 	'Configure tapped hole modeling parameters
 	oDoc.ModelingSettings.TappedHoleDiameter = 21764 'Tap Drill
@@ -167,20 +181,29 @@ Sub Main()
 	'check for outsource OPS and prompt user for correct material entry
 	If Parameter("OP1").Contains("OS") AndAlso Parameter("VendorSupplyMtl") = False Then
 		MessageBox.Show("Are you sure you need to supply material for the Outsource operation(s)?  " & vblf & _
-		"If you do not need to supply material, please check the ""Vendor Supplied Material"" check box, and re-run ""Smart Part Config"".  " & vbLf & _
-		"If you are not sure, check with your studio lead or the purchasing departament.  ","Material Error?", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+			"If you do not need to supply material, please check the 'Vendor Supplied Material' check box, and re-run 'Smart Part Config'.  " & vbLf & _
+			"If you are not sure, check with your studio lead or the purchasing departament.  ","Material Error?", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+		MsgComp = MsgComp & "ERROR Material 1|"
+	End If
+	
+	If Parameter("VendorSupplyMtl") = False AndAlso Len(pMatDesc.Value) = 0 Then
+		MessageBox.Show("You have not entered a Material Number.  All Make parts require an entry in Material Number and Material Description.  " & vbLf & _
+			"Please enter a material number for this part or, if the part is to be outsourced, check 'Vendor Supplied Material' and re-run the config.  ", "Material Number Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+		MsgComp = MsgComp & "ERROR Material 2|"
 	End If
 	
 	'Router Material Checks
 	If Parameter("OP1").Contains("OP011") Then
 		If pMatDesc.Value.ToLower.Contains("bar") OrElse pMatDesc.Value.ToLower.Contains("tube") Then 
 			MessageBox.Show("Please check your material selection.  Only Sheet/Plate materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+			MsgComp = MsgComp & "ERROR Router Material 1|"
 		End If
 	End If	
 	
 	If Parameter("OP1").Contains("OP011") Then
 		If pMatDesc.Value.ToLower.Contains("steel") Then 
 			MessageBox.Show("Please check your material selection.  Only Wood/Plastic/Aluminum materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+			MsgComp = MsgComp & "ERROR Router Material 2|"
 		End If
 	End If
 	
@@ -188,12 +211,14 @@ Sub Main()
 	If Parameter("OP1").Contains("OP010") Then
 		If pMatDesc.Value.ToLower.Contains("sheet") OrElse pMatDesc.Value.ToLower.Contains("plate") Then 
 			MessageBox.Show("Please check your material selection.  Sheet/Plate materials are not suitable for the Mill.  ", "Mill Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+			MsgComp = MsgComp & "ERROR Mill Material 1|"
 		End If
 	End If
 	
 	If Parameter("OP1").Contains("OP010") Then
 		If pMatDesc.Value.ToLower.Contains("wood") Then 
 			MessageBox.Show("Please check your material selection.  Wood materials are not suitable for the Mill.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+			MsgComp = MsgComp & "ERROR Mill Material 2|"
 		End If
 	End If
 	
@@ -205,13 +230,18 @@ Sub Main()
 		epart = InputRadioBox("Are you making an Epicor Manufactured Part?", "Yes, Products RULE!", "No, im a Douchebag", epart, "iLogic")
 		If epart = True Then
 			pOPS.Value = "OP027:CNC Program~" & pOPS.Value
+			
+			ErrComp = ErrComp & "EPart|"
+			
 			'Prompt "Is this a control part"
 			cpart = InputRadioBox("Is this a Control Part?", "Yes, im awesome", "No, im a loser", True, "Control Rules" )
 			If cpart = True Then
 				pOPS.Value = pOPS.Value & "OP062:Control – Fabrication~"
+				ErrComp = ErrComp & "Control EPart|"
 			End If
 			MsgBox("Operations appended.  Remember to mark the last operation as ""Final"".  " & vbLf & _
 			"If the part has in-house router or mill operations, check the iProperties for time estimates.  ")
+			
 		End If
 	Else
 		'MsgBox("This part is not correctly configured to be an Epicor part.  "
@@ -263,9 +293,10 @@ Sub Main()
 	
 	'Write out part values, if writing is enabled.  
 	If noWrite = False
-		oAppend.WriteLine(pPN.Value & "," & pRev.Value & "," & pDesc.Value & "," & pMB.Value & "," & _ 
-		pLength.Value & "," & pWidth.Value & "," & pThick.Value & "," & pMatNum.Value & "," & _
-		pMatDesc.Value & "," & pOPS.Value)
+		oAppend.WriteLine(pPN.Value & "," & pRev.Value & "," & pDesc.Value.Replace(",", "_") & "," & pMB.Value & "," & _ 
+			pLength.Value & "," & pWidth.Value & "," & pThick.Value & "," & pMatNum.Value.Replace(",", "_") & "," & _
+			pMatDesc.Value.Replace(",", "_") & "," & Parameter("OP1") & "," & Parameter("OP2") & "," & Parameter("OP3") & "," & _
+			Parameter("OP4") & "," & MsgComp)
 	End If
 
 	oAppend.Flush()
