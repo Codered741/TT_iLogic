@@ -4,7 +4,7 @@
 	customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
 	
 'Main
-	oAsmDoc = ThisApplication.ActiveDocument
+	oAsmDoc = ThisApplication.ActiveEditDocument
 	
 	SharedVariable("LogVar") = "Export DWG"
 	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")

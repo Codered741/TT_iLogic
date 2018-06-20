@@ -11,7 +11,7 @@ Sub Main()
 	SharedVariable("LogVar") = "Export Model as DWG to set Location"
 	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")	
 
-	Dim oDoc as Document = ThisApplication.ActiveDocument
+	Dim oDoc as Document = ThisApplication.ActiveEditDocument
 	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
 	
 	If isPrtAsm(oDoc) = False Then
@@ -44,6 +44,7 @@ Sub Main()
 		ThisDoc.Save
 	Catch
 		MsgBox("You do not have write permission for this document.  The selected path may not be saved.  ")
+		Exit Sub
 	End Try
 	
 	ThisDoc.Document.SaveAs(FileNameDWG, True)
@@ -80,6 +81,5 @@ Function isPrtAsm(ThisDoc As Document) As Boolean
 		isPrtAsm = True
 	Else
 		isPrtAsm = False
-		Debug.Print ("isPrtAsm found " & ThisDoc.DocumentType)
 	End If
 End Function
