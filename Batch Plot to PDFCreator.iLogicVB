@@ -84,6 +84,11 @@ Sub Main()
 			DwgPrint(PrinterName)
 		Catch 
 			MessageBox.Show("Something went wrong!  Make sure you have PDFCreator installed and named the same.  ", "Printing Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			Try
+				System.Diagnostics.Process.Start("http://download.pdfforge.org/download/pdfcreator/PDFCreator-stable")
+			Catch
+			End Try
+			
 			If noWrite <> True Then
 				oAppend.WriteLine("!!! EXITING - Printing Error")
 				oAppend.Close()
@@ -147,6 +152,11 @@ Sub Main()
 				DwgPrint(PrinterName)
 			Catch 
 				MessageBox.Show("Something went wrong!  Make sure you have PDFCreator installed and named the same.  ", "Printing Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+				
+				Try
+				System.Diagnostics.Process.Start("http://download.pdfforge.org/download/pdfcreator/PDFCreator-stable")
+				Catch
+				End Try
 				
 				If noWrite <> True Then
 					oAppend.WriteLine("Printing Error")
