@@ -80,10 +80,8 @@
 					Else
 						MessageBox.Show("There is something wrong.  Please contact a Vault Administrator for assistance.  ", "GET HELP!!!", MessageBoxButtons.OK, MessageBoxIcon.Error)
 						ThisDoc.Launch("C:\_vaultWIP\Designs\Templates\Library\iLogic\Special\spiderdick.jpg")
-						
-						SharedVariable("LogVar") = "SPIDERDICK!!!"
+						SharedVariable("LogVar") = "SPIDERDICK"
 						iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
-						
 						Exit Sub
 					End If
 				End If
