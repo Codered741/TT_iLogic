@@ -179,49 +179,50 @@ Sub Main()
 	pOPS.Value = (Parameter("OP1") & Parameter("OP2") & Parameter("OP3") & Parameter("OP4"))
 	
 	'check for outsource OPS and prompt user for correct material entry
-	If Parameter("OP1").Contains("OS") AndAlso Parameter("VendorSupplyMtl") = False Then
-		MessageBox.Show("Are you sure you need to supply material for the Outsource operation(s)?  " & vblf & _
-			"If you do not need to supply material, please check the 'Vendor Supplied Material' check box, and re-run 'Smart Part Config'.  " & vbLf & _
-			"If you are not sure, check with your studio lead or the purchasing departament.  ","Material Error?", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-		MsgComp = MsgComp & "ERROR Material 1|"
-	End If
-	
-	If Parameter("VendorSupplyMtl") = False AndAlso Len(pMatDesc.Value) = 0 Then
-		MessageBox.Show("You have not entered a Material Number.  All Make parts require an entry in Material Number and Material Description.  " & vbLf & _
-			"Please enter a material number for this part or, if the part is to be outsourced, check 'Vendor Supplied Material' and re-run the config.  ", "Material Number Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
-		MsgComp = MsgComp & "ERROR Material 2|"
-	End If
-	
-	'Router Material Checks
-	If Parameter("OP1").Contains("OP011") Then
-		If pMatDesc.Value.ToLower.Contains("bar") OrElse pMatDesc.Value.ToLower.Contains("tube") Then 
-			MessageBox.Show("Please check your material selection.  Only Sheet/Plate materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
-			MsgComp = MsgComp & "ERROR Router Material 1|"
+	If pMB.Value = "Make" Then
+		If Parameter("OP1").Contains("OS") AndAlso Parameter("VendorSupplyMtl") = False Then
+			MessageBox.Show("Are you sure you need to supply material for the Outsource operation(s)?  " & vblf & _
+				"If you do not need to supply material, please check the 'Vendor Supplied Material' check box, and re-run 'Smart Part Config'.  " & vbLf & _
+				"If you are not sure, check with your studio lead or the purchasing departament.  ","Material Error?", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+			MsgComp = MsgComp & "ERROR Material 1|"
 		End If
-	End If	
-	
-	If Parameter("OP1").Contains("OP011") Then
-		If pMatDesc.Value.ToLower.Contains("steel") Then 
-			MessageBox.Show("Please check your material selection.  Only Wood/Plastic/Aluminum materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
-			MsgComp = MsgComp & "ERROR Router Material 2|"
+		
+		If Parameter("VendorSupplyMtl") = False AndAlso Len(pMatDesc.Value) = 0 Then
+			MessageBox.Show("You have not entered a Material Number.  All Make parts require an entry in Material Number and Material Description.  " & vbLf & _
+				"Please enter a material number for this part or, if the part is to be outsourced, check 'Vendor Supplied Material' and re-run the config.  ", "Material Number Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+			MsgComp = MsgComp & "ERROR Material 2|"
+		End If
+		
+		'Router Material Checks
+		If Parameter("OP1").Contains("OP011") Then
+			If pMatDesc.Value.ToLower.Contains("bar") OrElse pMatDesc.Value.ToLower.Contains("tube") Then 
+				MessageBox.Show("Please check your material selection.  Only Sheet/Plate materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+				MsgComp = MsgComp & "ERROR Router Material 1|"
+			End If
+		End If	
+		
+		If Parameter("OP1").Contains("OP011") Then
+			If pMatDesc.Value.ToLower.Contains("steel") Then 
+				MessageBox.Show("Please check your material selection.  Only Wood/Plastic/Aluminum materials are suitable for the Router.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+				MsgComp = MsgComp & "ERROR Router Material 2|"
+			End If
+		End If
+		
+		'Mill Material Checks
+		If Parameter("OP1").Contains("OP010") Then
+			If pMatDesc.Value.ToLower.Contains("sheet") OrElse pMatDesc.Value.ToLower.Contains("plate") Then 
+				MessageBox.Show("Please check your material selection.  Sheet/Plate materials are not suitable for the Mill.  ", "Mill Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+				MsgComp = MsgComp & "ERROR Mill Material 1|"
+			End If
+		End If
+		
+		If Parameter("OP1").Contains("OP010") Then
+			If pMatDesc.Value.ToLower.Contains("wood") Then 
+				MessageBox.Show("Please check your material selection.  Wood materials are not suitable for the Mill.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+				MsgComp = MsgComp & "ERROR Mill Material 2|"
+			End If
 		End If
 	End If
-	
-	'Mill Material Checks
-	If Parameter("OP1").Contains("OP010") Then
-		If pMatDesc.Value.ToLower.Contains("sheet") OrElse pMatDesc.Value.ToLower.Contains("plate") Then 
-			MessageBox.Show("Please check your material selection.  Sheet/Plate materials are not suitable for the Mill.  ", "Mill Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
-			MsgComp = MsgComp & "ERROR Mill Material 1|"
-		End If
-	End If
-	
-	If Parameter("OP1").Contains("OP010") Then
-		If pMatDesc.Value.ToLower.Contains("wood") Then 
-			MessageBox.Show("Please check your material selection.  Wood materials are not suitable for the Mill.  ", "Router Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
-			MsgComp = MsgComp & "ERROR Mill Material 2|"
-		End If
-	End If
-	
 	'This should move to a new rule.  ????????
 	'Look for a configuration that appears to be an epart, and suggest adding ops, if necessary
 	Dim epart as Boolean = True

@@ -7,30 +7,37 @@ Sub Main()
 
 	Dim oDoc as Document = ThisApplication.ActiveDocument
 	
+	'check if active document is an assembly
 	If isAsm(oDoc) = False
 		MsgBox("Please run from an Assembly")
 		Return
 	End If
 	
+	'write to iLogic Log
+	SharedVariable("LogVar") = "Batch Plot to PDFCreator"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	'create access to Batch Plot log
 	Dim oAppend As System.IO.StreamWriter
 	Dim oFile As String = "Z:\Inventor Data\BPLog.log"
 
+	'try getting access to log, disable CSV output if access cannot be gained.  
 	Try
 		oAppend = IO.File.AppendText(oFile)
 	Catch
 		noWrite = True
 	End Try
 	
+	'Start Stream output, user name and date stamp
 	If noWrite <> True Then
 		oAppend.WriteLine("/////////////////////BATCH EXPORT PDF/////////////////////")
 		oAppend.WriteLine(ThisApplication.UserName & "," & DateTime.Now.ToString("G") & "," & oDoc.FullFileName)
 	End If
 	
+	'Declare variables
 	Dim oRefDocs as DocumentsEnumerator = oDoc.AllReferencedDocuments
 	Dim copiedFileName As String
-	
 	Dim RefDwgFullFileName As String
-
 	Dim iProps as PropertySet
 	Dim RefPN
 	Dim PrinterName as String = "PDFCreator"
@@ -50,7 +57,7 @@ Sub Main()
 
 	'Attempt to find a drawing file of the same name as the model doc
 	RefDwgFullFileName = FindDrawingFile(oDoc)
-		
+	
 	If RefDwgFullFileName.Length > 5 Then 
 		
 		If noWrite <> True Then 
@@ -193,22 +200,25 @@ Sub DwgPrint(PrinterName as String)
 	oPrintMgr.Printer = PrinterName
 	
 	' Set to print in color.
-	oPrintMgr.ColorMode = kPrintColorPalette
+	oPrintMgr.ColorMode = 13313 'kPrintColorPalette
 	
 	' Set to print one copies.
 	oPrintMgr.NumberOfCopies = 1
 	
-	' Set to print using portrait orientation.
-	oPrintMgr.Orientation = kPortraitOrientation
+	' Set to print using landscape orientation.
+	oPrintMgr.Orientation = 13570
+		'13570 'kLandscapeOrientation
+		'13569 'kPortraitOrientation
 	
 	' Set the paper size.
-	oPrintMgr.PaperSize = kPaperSize11x17
+	oPrintMgr.PaperSize = 14338
+		'14338 'kPaperSize11x17
 	
 	' Set to print all sheets.
-	oPrintMgr.PrintRange = kPrintAllSheets
+	oPrintMgr.PrintRange = 14082 'kPrintAllSheets
 	
 	' Set to print full scale.
-	oPrintMgr.ScaleMode = kPrintFullScale
+	oPrintMgr.ScaleMode = 13825 'kPrintFullScale
 	
 	' Submit the print.
 	oPrintMgr.SubmitPrint
