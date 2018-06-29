@@ -4,6 +4,8 @@
 Sub Main()
 	'Declarations
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument 
+	Dim oCompDef as ComponentDefinition = oDoc.ComponentDefinition
+	'Dim oCompBOM As BOM = oCompDef.BOM
 	Dim oUOM As UnitsOfMeasure = oDoc.UnitsOfMeasure 
 	Dim oUOMstr As String = oUOM.GetStringFromType(oUOM.LengthUnits) 'for user prompt
 	Dim oUnitsEnum as Integer = oUom.LengthUnits
@@ -179,9 +181,11 @@ Sub Main()
 	If Parameter("MB") = False Then
 		pMB.Value = "Buy"
 		'pOPS.Value = "" 'removed for e-parts, to allow OPS while remaning a "buy" (publish to method)
+		oCompDef.BOMStructure = 51973 'Set buys to 'purchased' BOM structure
 	Else
-		pMB.Value = "Make"	
-	End If
+		pMB.Value = "Make"
+		oCompDef.BOMStructure = 51970 'Set makes to 'normal' BOM structure
+	End If		
 	
 	'concatenate Operations from parameters, to iProperty
 	pOPS.Value = (Parameter("OP1") & Parameter("OP2") & Parameter("OP3") & Parameter("OP4"))
