@@ -188,8 +188,30 @@ Sub Main()
 	End If		
 	
 	'concatenate Operations from parameters, to iProperty
-	pOPS.Value = (Parameter("OP1") & Parameter("OP2") & Parameter("OP3") & Parameter("OP4"))
+	If Parameter("OP1") <> " " Then 
+		pOPS.Value = Parameter("OP1")
+	Else 
+		pOPS.Value = ""
+	End If
 	
+	If Parameter("OP2") <> " " Then 
+		pOPS.Value = pOPS.Value & Parameter("OP2")
+	Else 
+		pOPS.Value = pOPS.Value & ""
+	End If
+	
+	If Parameter("OP3") <> " " Then 
+		pOPS.Value = pOPS.Value & Parameter("OP3")
+	Else 
+		pOPS.Value = pOPS.Value & ""
+	End If
+	
+	If Parameter("OP4") <> " " Then 
+		pOPS.Value = pOPS.Value & Parameter("OP4")
+	Else 
+		pOPS.Value = pOPS.Value & ""
+	End If
+
 	'check for outsource OPS and prompt user for correct material entry
 	If pMB.Value = "Make" Then
 		If Parameter("OP1").Contains("OS") AndAlso Parameter("VendorSupplyMtl") = False Then
