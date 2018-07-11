@@ -20,27 +20,25 @@
 	oPane = oDoc.BrowserPanes.Item("Model")
 
 	' Grab the occurrence of the object
-		Dim oOcc As ComponentOccurrence
-		For Each oOcc In oDoc.ComponentDefinition.Occurrences
+	Dim oOcc As ComponentOccurrence
+	Dim invDesignInfo As PropertySet
+	Dim oOccDoc As Document
+	Dim invPartNumberProperty As Inventor.Property
+	Dim oSubAssyNode As BrowserNode
+
+	For Each oOcc In oDoc.ComponentDefinition.Occurrences
 
 		'Grab Document from Occurrence    
 
-		Dim oOccDoc As Document
 		oOccDoc = oOcc.Definition.Document
 		
-		'get design properties set'    
-
-		Dim invDesignInfo As PropertySet
+		'get design properties set
 		invDesignInfo = oOccDoc.PropertySets.Item("Design Tracking Properties")
 		
-		' Get the part number property.
-
-		Dim invPartNumberProperty As Inventor.Property
+		' Get the part number property
 		invPartNumberProperty = invDesignInfo.Item("Part Number")
 
 		' Get the browser node that corresponds to the new item
-
-		Dim oSubAssyNode As BrowserNode
 		oSubAssyNode = oPane.GetBrowserNodeFromObject(oOcc)
 
 		If oSubAssyNode.NativeObject.Name <> invPartNumberProperty.Value Then
