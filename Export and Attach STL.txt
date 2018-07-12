@@ -32,7 +32,7 @@
 			oRevNum = iProperties.Value("Project", "Revision Number")
 			oSTLAddIn = ThisApplication.ApplicationAddIns.ItemById _
 			("{81CA7D27-2DBE-4058-8188-9136F85FC859}")
-			oDocument = ThisApplication.ActiveDocument
+			oDocument = ThisApplication.ActiveEditDocument
 			oContext = ThisApplication.TransientObjects.CreateTranslationContext
 			oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
 			oOptions = ThisApplication.TransientObjects.CreateNameValueMap
@@ -77,7 +77,7 @@
 				If AttachFile = vbYes Then
 			
 					Dim oDoc As PartDocument
-					oDoc = ThisApplication.ActiveDocument
+					oDoc = ThisApplication.ActiveEditDocument
 					
 					Dim kOLEDocumentLinkObject As ObjectTypeEnum
 						kOLEDocumentLinkObject = 3331 'OLE link document
