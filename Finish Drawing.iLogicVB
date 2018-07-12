@@ -10,7 +10,7 @@
 ' 5. Save File
 ' 6. check in file
 Sub Main()
-	
+	On Error Goto ErrorHandler
 	Dim oDoc As DrawingDocument
 	
 	SharedVariable("LogVar") = "Finish Drawing"
@@ -39,28 +39,32 @@ Sub Main()
 
 	oCommandMgr.ControlDefinitions.Item("UpdateCopiedModeliPropertiesCmd").Execute2(True)
 
-	Try
-	
-		prop = oRefCustomProps.Item("OPS")
-		
-		If oRefCustomProps.Item("OPS").Value.Contains("OS-") Then
-			iLogicVb.RunExternalRule("Export and Attach DXF")
-		End If
-		
-	Catch
-	
-		MessageBox.Show("Please check the Smart Part Config for this Part/Assembly.  The 'OPS' Parameter is missing. ", "Missing Parameter")
-		'Exit Sub
-		notDone = True
-	End Try
-
-	iLogicVb.RunExternalRule("Export and Attach PDF")
+	' Try
+		' prop = oRefCustomProps.Item("OPS")
+		' If oRefCustomProps.Item("OPS").Value.Contains("OS") Then
+			' iLogicVb.RunExternalRule("Export and Attach DXF")
+		' End If
+	' Catch
+		' MessageBox.Show("Please check the Smart Part Config for this Part/Assembly.  The 'OPS' Parameter is missing. ", "Missing Parameter")
+		' 'Exit Sub
+		' notDone = True
+	' End Try
+	'iLogicVb.RunExternalRule("Export and Attach PDF")
 
 	oDoc.Save
 	
 	If notDone = False Then
 		oCommandMgr.ControlDefinitions.Item("VaultCheckinTop").Execute
+	Else
+		MessageBox.Show("An Error occurred.  Please try again.", "iLogic", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+		Exit Sub
 	End If
 	
+	
 	'ThisApplication.ActiveDocument.Close
+	
+ErrorHandler:
+	notDone = True
+	Resume Next
+	
 End Sub
