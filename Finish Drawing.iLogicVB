@@ -11,18 +11,16 @@
 ' 6. check in file
 Sub Main()
 	On Error Goto ErrorHandler
-	Dim oDoc As DrawingDocument
+	Dim oDoc As Document
 	
 	SharedVariable("LogVar") = "Finish Drawing"
 	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
 	
-	
-	Try
-		oDoc = ThisApplication.ActiveEditDocument
-	Catch
-		MessageBox.Show("Please run this rule from a Drawing file.  ", "Drawing Only Rule", MessageBoxButtons.OK)
+	oDoc = ThisApplication.ActiveDocument
+	If Not oDoc.DocumentType = kDrawingDocumentObject Then
+		MessageBox.Show("Please run this rule from a Drawing file.  ", "Drawing Only Rule", MessageBoxButtons.OK, MessageBoxIcon.Error)
 		Exit Sub
-	End Try
+	End If
 	
 	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
 	Dim oRefDocs As DocumentsEnumerator = oDoc.AllReferencedDocuments

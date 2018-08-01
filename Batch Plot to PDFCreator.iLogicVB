@@ -2,10 +2,17 @@ Imports System.IO
 Imports System.IO.Path
 Imports System.Collections
 Imports My.Computer.FileSystem
+Imports "C:\Program Files\PDFCreator\PDFCreator.ComWrapper.dll"
 
 Sub Main()
 
+	On Error Resume Next
+	
 	Dim oDoc as Document = ThisApplication.ActiveDocument
+	Dim PDFCreatorQueue As Queue = New Queue
+	
+	Dim VaultAddin As Inventor.ApplicationAddIn = ThisApplication.ApplicationAddIns.ItemById("{48B682BC-42E6-4953-84C5-3D253B52E77B}")
+    VaultAddin.Deactivate()
 	
 	'check if active document is an assembly
 	If isAsm(oDoc) = False
@@ -186,6 +193,8 @@ Sub Main()
 		End If
 		
 	Next
+	
+	VaultAddin.Activate()
 	
 	oAppend.Flush()
 	oAppend.Close()

@@ -29,9 +29,12 @@
 		'Prompt the User for Description
 		oDesc = InputBox("Enter New Part Description - Current : " & currName, "Part Description", "")
 		'Set the user input as the description
-		iProperties.Value(compOcc.Name, "Project", "Description") = oDesc
-		MessageBox.Show("Description changed.")
-
+		If Not oDesc  = currName OrElse Not oDesc = Nothing Then
+			iProperties.Value(compOcc.Name, "Project", "Description") = oDesc
+			MessageBox.Show("Description changed.")
+		Else
+			MessageBox.Show("Description was not changed.  Please change the name, or enter a value.  ", "iLogic", MessageBoxButtons.OK)
+		End If
 		
 	End If
 
