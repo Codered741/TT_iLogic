@@ -55,7 +55,7 @@ Sub Main()
 	InventorVb.Application.CreateFileDialog(oFileDlg)
 	oFileDlg.Filter = "DWG\DXF Files (*.dwg;*.dxf)|*.dwg;*.dxf"'|All Files (*.*)|*.*"
 	oFileDlg.DialogTitle = "Select File(s) to Import"
-	oFileDlg.InitialDirectory = "P:\export_dxf\"
+	oFileDlg.InitialDirectory = "\\tait-ltz-eplan1\EPLAN\export_dxf\"
 	oFileDlg.CancelError = False
 	oFileDlg.MultiSelectEnabled = True
 	
@@ -79,11 +79,21 @@ Sub Main()
 
 	AddedSheets = oFiles.Count
 	
+	'Prompt user for sheet titles
+	Dim usrNamedSheets 
+	Dim usrIndNameSheets as String = ""
+	Dim usrSkipName as Boolean = True
+	
+	usrNamedSheets = MessageBox.Show("Would you like to name the sheets manually?", "Sheet Naming", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+	
+	If usrNamedSheets = vbYes Then
+		usrIndNameSheets = InputBox("Enter the page title for ALL imported sheets.  Leave this blank if you would like to name each sheet individually.  ", "Sheet Naming")
+	Else 
+		usrSkipName = False
+	End If
+	
 	'insert sheet from format, and import file as sketch, for each file in list
 	For Each oFile In oFiles
-		
-		'dim pageTitle as Object
-		'pageTitle = InputBox("Enter page description", "User Input", "")
 		
 		oSheets.AddUsingSheetFormat(oFormat)  ',,,,pageTitle)
 		
@@ -124,6 +134,26 @@ Sub Main()
 		
 		oSk.ExitEdit
 		
+		'Prompt User to Enter Page Titles
+		oTitleBlock = oSheet.TitleBlock
+
+		oTextBoxes = oTitleBlock.Definition.Sketch.TextBoxes
+		
+		If usrIndNameSheets = String.Empty  AndAlso usrSkipName = True Then ' yes and left blank
+			For Each oTextBox In oTextBoxes
+				If oTextBox.Text = "<Page Title Prompt>" Then
+					strUsrTitle = InputBox("Please enter a page title. ", "Page Title")
+					oTitleBlock.SetPromptResultText(oTextBox, strUsrTitle)
+				End If
+			Next
+		Else
+			For Each oTextBox In oTextBoxes
+				If oTextBox.Text = "<Page Title Prompt>" Then
+					strUsrTitle = usrIndNameSheets
+					oTitleBlock.SetPromptResultText(oTextBox, strUsrTitle)
+				End If
+			Next
+		End If
 	Next
 
 	oDoc.Save
