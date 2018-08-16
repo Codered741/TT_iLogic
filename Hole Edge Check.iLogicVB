@@ -9,8 +9,17 @@
 
 Sub Main()
 	'Get applicaton level objects
-	Dim oDoc as Document = ThisApplication.ActiveDocument
+	
+	SharedVariable("LogVar") = "Hole Edge Check"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	Dim oDoc as Document = ThisApplication.ActiveEditDocument
 	Dim oMeasure As MeasureTools = ThisApplication.MeasureTools
+	
+	If Not oDoc.DocumentType = kPartDocumentObject Then
+		MessageBox.Show("This rule can only be run from a Part File.  Please open or edit a part file, and try again.  ", "Part Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		Exit Sub
+	End If	
 	
 	'Get component definition objects
 	Dim oDef as ComponentDefinition = oDoc.ComponentDefinition
@@ -58,7 +67,7 @@ Sub Main()
 			For Each cFace2 in CircFaceList
 				If cFace2.InternalName <> cFace.InternalName Then
 					EdgeDist = oMeasure.GetMinimumDistance(cFace, cFace2, 24833, 24833)
-					If EdgeDist < cFaceRad * 3
+					If EdgeDist < cFaceRad * 3 AndAlso EdgeDist > 0 Then
 						SSet.Select(cFace)
 					End If
 				End If			

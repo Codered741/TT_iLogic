@@ -38,6 +38,7 @@ Sub Main()
 	Dim pMatNum
 	Dim pMatDesc
 	Dim pSPVer
+	Dim pDetailer
 	
 	
 	Start:
@@ -51,6 +52,7 @@ Sub Main()
 		pMatNum = customPropertySet.Item("MATERIAL NUMBER")
 		pMatDesc = customPropertySet.Item("MATERIAL DESCRIPTION")
 		pSPVer = customPropertySet.Item("SPVer")
+		pDetailer = customPropertySet("DETAILER")
 	Catch
 		iLogicVB.RunExternalRule("Smart Part Property Add.Txt")
 		usrCancel = MessageBox.Show("Properties were added, please double check your entries.  ", "iLogic Property Check", MessageBoxButtons.OKCancel)
@@ -169,6 +171,14 @@ Sub Main()
 		MsgBox("Invalid revision number detected.  Only numerical revisions are allowed.  Revision has been changed to 0.  ")
 		MsgComp = MsgComp & "ERROR Revision Number|"
 	End Try
+	
+	
+	If pDetailer.Value = "" Then
+		ruDetailer = MessageBox.Show("Are you detailing this part?", "iLogic", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+		If ruDetailer = vbYes Then
+			pDetailer.Value = ThisApplication.UserName
+		End If
+	End If
 	
 	'Configure tapped hole modeling parameters
 	oDoc.ModelingSettings.TappedHoleDiameter = 21764 'Tap Drill
@@ -320,7 +330,8 @@ Sub Main()
 	
 	'run rule to fill values for machining estimation
 	If ThisApplication.UserName = "Cody Redding" Then
-		iLogicVb.RunExternalRule("Time Estimate.iLogicVb") 'not ready for primetime
+		'iLogicVb.RunExternalRule("Time Estimate.iLogicVb") 'not ready for primetime
+		MsgBox("You are AWESOME!")
 	End If
 	
 	'Save Document
