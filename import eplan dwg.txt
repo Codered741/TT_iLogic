@@ -135,9 +135,13 @@ Sub Main()
 		oSk.ExitEdit
 		
 		'Prompt User to Enter Page Titles
-		oTitleBlock = oSheet.TitleBlock
-
-		oTextBoxes = oTitleBlock.Definition.Sketch.TextBoxes
+		Try
+			oTitleBlock = oSheet.TitleBlock
+			oTextBoxes = oTitleBlock.Definition.Sketch.TextBoxes
+		Catch
+			MessageBox.Show("The rule was unable to access the title block.  Please ensure the '11x17 General' sheet format is correct.  The rule cannot continue.  ", "Title Block Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			Exit Sub
+		End Try
 		
 		If usrIndNameSheets = String.Empty  AndAlso usrSkipName = True Then ' yes and left blank
 			For Each oTextBox In oTextBoxes
