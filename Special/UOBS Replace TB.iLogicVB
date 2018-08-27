@@ -1,0 +1,120 @@
+Imports System.Collections.Generic
+'code taken and modified from:
+'http://adndevblog.typepad.com/manufacturing/2015/01/add-external-ilogic-rule-to-event-trigger.html
+
+Sub Main
+
+	Dim oTemplateDoc As Document
+	Dim oTemplate As String 
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	
+	'check file type 
+	If oDoc.DocumentType = kDrawingDocumentObject Then
+		oTemplate = "C:\_vaultWIP\Designs\Templates\Universal\Universal Orlando Bourne.dwg"		'file to copy events from
+	'ElseIf oDoc.DocumentType = kPartDocumentObject Then
+		'oTemplate = "\\server\departments\CAD\Inventor\Templates\Standard.ipt"   'file to copy events from
+	Else
+		'oTemplate = "\\server\departments\CAD\Inventor\Templates\Standard.iam"   'file to copy events from
+		MsgBox("must run from drawing")
+		Exit Sub
+	End If
+	
+	Dim oOptions as NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+		oOptions.Value("DeferUpdates") = True
+		oOptions.Value("FastOpen") = True
+		
+	'open the template
+	oTemplateDoc = ThisApplication.Documents.OpenWithOptions(oTemplate, oOptions, False)
+	
+	TitleBlockCopy(oTemplateDoc, oDoc, "UNIVERSAL BOURNE Title/Part")
+	TitleBlockCopy(oTemplateDoc, oDoc, "UNIVERSAL BOURNE Kit Add")
+	BorderCopy(oTemplateDoc, oDoc, "UNIVERSAL BORDER - FULL")
+	SymbolCopy(oTemplateDoc, oDoc, "ACAD Leader Right")
+	SymbolCopy(oTemplateDoc, oDoc, "ACAD Leader Left")
+	
+	oTemplateDoc.Close(True)
+		
+	Dim oSheets As Sheets = oDoc.Sheets
+	Dim oSheet as Sheet = oDoc.Sheets.Item(1)
+	Dim SheetCount = 1
+	
+	oSheet.Activate
+	
+	ActiveSheet.Border = "UNIVERSAL BORDER - FULL"	
+	ActiveSheet.TitleBlock = "UNIVERSAL BOURNE Title/Part"
+
+	If oSheets.Count > 1 Then
+		For Each oSheet In oSheets
+			If SheetCount < oSheets.Count Then
+				SheetCount = SheetCount + 1
+				oSheet = oDoc.Sheets.Item(SheetCount)
+				oSheet.Activate
+				ActiveSheet.Border = "UNIVERSAL BORDER - FULL"
+				ActiveSheet.TitleBlock = "UNIVERSAL BOURNE Kit Add"
+			Else
+				Return
+				
+			End If
+			
+		Next
+	End If
+	'Parameter("VOverview") = 3 in
+	oDoc.Save
+	
+End Sub
+
+Sub TitleBlockCopy(SourceDoc as Document, DestDoc as Document, tbName as String)
+	' Get the new source title block definition.
+
+	Dim oSourceTitleBlockDef As TitleBlockDefinition = SourceDoc.TitleBlockDefinitions.Item(tbName)
+
+	' Get the new title block definition.
+	Dim oNewTitleBlockDef As TitleBlockDefinition = oSourceTitleBlockDef.CopyTo(DestDoc, True)
+End Sub
+
+Sub BorderCopy(SourceDoc As Document, DestDoc as Document, BorderName as String)
+	Dim oSourceBorderDef as BorderDefinition = SourceDoc.BorderDefinitions.Item(BorderName)
+	Dim oNewBorderDef as BorderDefinition = oSourceBorderDef.CopyTo(DestDoc, True)
+End Sub
+
+Sub SymbolCopy(SourceDoc As Document, DestDoc as Document, SymbolName as String)
+	Dim oSourceSymbolDef as SketchedSymbolDefinition = SourceDoc.SketchedSymbolDefinitions.Item(SymbolName)
+	Dim oNewBorderDef as SketchedSymbolDefinition = oSourceSymbolDef.CopyTo(DestDoc, True) 
+End Sub
+' iLogicVb.UpdateWhenDone = True
+
+' Dim Borders(0 To 3) As String
+
+' Borders(0) = "TAIT Part"
+' Borders(1) = "TAIT General"
+' Borders(2) = "TAIT Title"
+' Borders(3) = "Universal Bourne Title"
+' Borders(4) = "Universal Bourne Part"
+' Borders(5) = "Universal Bourne Add"
+
+' UsrChoice = InputListBox("Select Border", Borders, Borders(0), "Drawing Border", "Select One")
+
+' ActiveSheet.Border = UsrChoice
+
+' Select Case UsrChoice
+' Case UsrChoice = Borders(0)
+	' Border = "TT 11x17 Part Border"
+	' TitleBlock = "TT 
+' Case UsrChoice = Borders(1)
+	' Border = "TT 11x17 General Border"
+	
+' Case UsrChoice = Borders(2)
+	' Border = 
+	
+' Case UsrChoice = Borders(3)
+	' Border =
+	
+' Case UsrChoice = Borders(4)
+	' Border = 
+	
+' Case UsrChoice = Borders(5)
+	' Border = 
+' Borders(0) = 
+' Borders(1) = "TT 11x17 Title Page Border"
+' Borders(2) = 
+' Borders(3) = "UNIVERSAL BORDER - FULL"

@@ -1,0 +1,4 @@
+Dim oDoc as Document = ThisApplication.ActiveEditDocument
+Dim FilePath as String 
+FilePath = Left(oDoc.FullFileName, InStrRev(oDoc.FullFileName, "\"))
+ThisDoc.Launch(FilePath)
