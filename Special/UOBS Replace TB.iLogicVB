@@ -8,6 +8,9 @@ Sub Main
 	Dim oTemplate As String 
 	Dim oDoc as Document = ThisApplication.ActiveDocument
 	
+	SharedVariable("LogVar") = "UOBS Replace TB"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
 	'check file type 
 	If oDoc.DocumentType = kDrawingDocumentObject Then
 		oTemplate = "C:\_vaultWIP\Designs\Templates\Universal\Universal Orlando Bourne.dwg"		'file to copy events from
