@@ -1,0 +1,11 @@
+On Error Resume Next
+
+ViewPlaceH = (ThisDrawing.Sheet("Title Page:1").Width * 0.66 ul) + HOverview
+ViewPlaceV = (ThisDrawing.Sheet("Title Page:1").Height/3) + VOverview
+
+ThisDrawing.Sheet("Title Page:1").View("Overview").SetCenter(ViewPlaceH, ViewPlaceV)
+ThisDrawing.Sheet("Title Page:1").View("Overview").Scale = 1
+viewHeight = ThisDrawing.Sheet("Title Page:1").View("Overview").Height
+ThisDrawing.Sheet("Title Page:1").View("Overview").Scale = (5 / viewHeight)
+
+'ActiveSheet.View("VIEW1").SetSpacingToCorner(distanceX, distanceY, SheetCorner.TopLeft)
