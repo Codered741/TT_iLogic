@@ -21,7 +21,7 @@ Sub Main()
 	Dim CustomGroupName As String = "TAIT Smart Part"
 	Dim pSPVer
 	Dim pSP
-	Dim VersionNum as String = "2.2"
+	Dim VersionNum as String = "2.2.1"
 	
 	'Add Values To List
 	'String iProperties - for smart part
@@ -116,7 +116,7 @@ End Sub
 '''''''''''''''''''''''''Subroutines
 Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 	
-	Dim OPList(0 to 32) As String 
+	Dim OPList(0 to 33) As String 
 	
 	OPList(0)=""" """
 	OPList(1)="""OP009:Lathe CNC~"""
@@ -151,6 +151,7 @@ Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 	OPList(30)="""OP141:OS - Upholstery~"""
 	OPList(31)="""OP145:Post Processing~"""
 	OPList(32)="""OP146:Laser Cutting / Etching~"""
+	OPList(33)="""OP186:OS - Spray Paint~"""
 	
 	Dim OPx As Parameter
 	
