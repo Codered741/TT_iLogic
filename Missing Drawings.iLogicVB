@@ -39,6 +39,11 @@ Sub MissingDrawings()
 	Dim bFoundFile As Boolean
 	bFoundFile = False
 
+	
+	Dim PrtsMissingDwgs As New List(Of String)
+	Dim PrtsMissingMB As New List(Of String)
+	
+	
 	'get user input
 	RUsure = MessageBox.Show("This operation will search for drawing files that do NOT exist in your Vault workspace.  " _
 		& vbLf & " Drawings may exist in the Vault, but will not be counted in this operation.  See a Vault Admin for assistance. " _
@@ -69,7 +74,8 @@ Sub MissingDrawings()
 				
 				If dwgPathName = "" Then 
 					
-					oAppend.WriteLine("MISSING DRAWING FOR : " & oRefDoc.FullDocumentName)
+					
+					PrtsMissingDwgs.Add(oRefDoc.FullDocumentName)
 					bFoundFile = True
 					
 				Else 
@@ -79,7 +85,11 @@ Sub MissingDrawings()
 				End If
 			End If
 			Catch
-				oAppend.WriteLine("MAKE-BUY PROPERTY NOT FOUND : " & oRefDoc.FullDocumentName)
+			
+				'oAppend.WriteLine("MAKE-BUY PROPERTY NOT FOUND : " & oRefDoc.FullDocumentName)
+				PrtsMissingMB.Add(oRefDoc.FullDocumentName)
+				bFoundFile = True
+				
 			End Try
 			
 			'MsgBox(MBProp.Value)
@@ -90,12 +100,47 @@ Sub MissingDrawings()
 	
 	'- - - - - - - - - - - - -
 	If bFoundFile = True Then
-	
+		
+		PrtsMissingDwgs.Sort()
+		
+		For Each doc In PrtsMissingDwgs
+			oAppend.WriteLine("MISSING DRAWING FOR : " & doc)
+		Next
+		
+		PrtsMissingMB.Sort()
+		
+		For Each doc In PrtsMissingMB
+			oAppend.WriteLine("MAKE-BUY PROPERTY NOT FOUND : " & doc)
+		Next
+		
 		oAppend.WriteLine("---End of Report---")
 		oAppend.Flush()
 		oAppend.Close()
 		
-		ThisDoc.Launch (oFile)
+		ThisDoc.Launch(oFile)
+		
+		If PrtsMissingDwgs.Count > 0 Then
+			
+			OpenSParts = MessageBox.Show("Would you like to open all the parts that are missing drawings?", "Open Parts?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+			If OpenSParts = vbYes Then
+				For Each doc In PrtsMissingDwgs
+					ThisApplication.Documents.Open(doc)
+					ThisApplication.CommandManager.ControlDefinitions.Item("AppZoomAllCmd").Execute
+				Next
+			End If
+		End If
+		
+		If PrtsMissingMB.Count > 0 Then
+
+			
+			OpenSParts = MessageBox.Show("Would you like to open all the parts that are missing Smart Part Properties?", "Open Parts?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+			If OpenSParts = vbYes Then
+				For Each doc In PrtsMissingMB
+					ThisApplication.Documents.Open(doc)
+					ThisApplication.CommandManager.ControlDefinitions.Item("AppZoomAllCmd").Execute
+				Next
+			End If
+		End If
 		
 	Else
 	
@@ -106,8 +151,6 @@ Sub MissingDrawings()
 		oAppend.Close()
 		
 	End If
-	
-
 	
 End Sub
 
