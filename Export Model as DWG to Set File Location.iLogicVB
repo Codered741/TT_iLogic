@@ -40,13 +40,6 @@ Sub Main()
 	FileName = ThisDoc.FileName(False)
 	FileNameDWG = oProp.Value & FileName & " ACAD SIMPLE.dwg"
 	
-	Try
-		ThisDoc.Save
-	Catch
-		MsgBox("You do not have write permission for this document.  The selected path may not be saved.  ")
-		Exit Sub
-	End Try
-	
 	ThisDoc.Document.SaveAs(FileNameDWG, True)
 	MsgBox(FileNameDWG & " has been exported.  ")
 	
@@ -71,6 +64,14 @@ Function ChooseFolderLocation(oDoc as Document)
 		' User clicked 'cancel' on dialog box - exit
 		ChooseFolderLocation = ""
 	End If
+	
+	Try
+		oDoc.Save
+	Catch
+		MsgBox("You do not have write permission for this document.  The selected path may not be saved.  ")
+		Exit Sub
+	End Try
+	
 End Function
 
 Function isPrtAsm(ThisDoc As Document) As Boolean
