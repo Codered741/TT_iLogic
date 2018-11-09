@@ -1,0 +1,125 @@
+AddReference "Microsoft.Office.Interop.Excel"
+
+Sub Main()
+	Dim oDoc as Document
+	Dim Workbook As String = "R:\DISNEY PROJECT KAPPA - 17-A-0059\X-REF MASTER FILES\Disney Part Numbers.xlsx"
+	Dim SheetName As String
+	On Error Resume Next
+	
+	Accident = MessageBox.Show("Are you sure this is for the Kappa Project?", "RU Sure?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+	If Accident = vbNo Then
+		Exit Sub
+	End If
+	
+	'Get the Model, even from drawing
+	If ThisApplication.ActiveEditDocument.DocumentType = kDrawingDocumentObject Then
+		oDoc = ThisApplication.ActiveEditDocument.AllReferencedDocuments.Item(1) 'Always gets first reference
+	Else 
+		oDoc = ThisApplication.ActiveEditDocument
+	End If
+	
+	'Get the Summary Property Set
+	Dim DesignProps as PropertySet = oDoc.PropertySets.Item("Design Tracking Properties")
+	Dim PNProp as Inventor.Property = DesignProps.Item("Part Number")
+	
+	'Get the Model custom property set
+	Dim CustPropSet as PropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+
+	'get the DisneyPN Property
+	CustPropSet.Add("", "DisneyPN")
+	Dim DisneyPN = CustPropSet.Item("DisneyPN")
+	Err.Clear
+	
+	'check if the custom property is filled, exit if it is
+	If Not String.IsNullOrEmpty(DisneyPN.Value) then
+		MessageBox.Show("A Part number has already been selected.  " & DisneyPN.Value, "PN selected")
+		Exit Sub
+	End If
+	
+	'sets the proper excel sheet
+	If oDoc.DocumentType = kPartDocumentObject Then
+		SheetName = "Parts"
+	Else
+		Dim weldment = MessageBox.Show("Select 'Yes' if this is a weldment", "Weldment?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+		If Weldment = vbYes Then
+			SheetName = "Weldments"
+		Else 
+			SheetName = "Assemblies"
+		End If
+	End If
+	
+	'Open the Excel File
+	Dim xlApp as Microsoft.Office.Interop.Excel.Application
+	Dim openedByRule as Boolean = False
+	
+	xlApp = GetObject(, "Microsoft.Office.Interop.Excel.Application")
+	
+	If Err.Number <> 0 Then
+	
+		Err.Clear
+		
+		xlApp = CreateObject("Excel.Application")
+		openedByRule = True
+		
+		If Err.Number <> 0 Then	
+			MsgBox("Cannot access Excel")
+			Exit Sub
+		End If
+		
+	End If
+	
+	xlApp.Visible = False
+	
+	Dim wb as Microsoft.Office.Interop.Excel.Workbook = xlApp.Workbooks.Open(Workbook)
+	
+	If Err.Number <> 0 Then
+		MsgBox("Unable to open the file, likely because it is in use by someone else.  Please try again. ") '& vbLf & "Error: " & Err.Number & " - " & Err.Description
+		If openedByRule Then 
+			xlApp.Quit
+		End If
+		
+		Exit Sub
+	End If
+	
+	Dim ws as Microsoft.Office.Interop.Excel.Worksheet = wb.Worksheets.Item(SheetName)
+	
+	If Err.Number <> 0 Then
+		MsgBox("Unable to get the sheet.  Please try again.  ")
+		If openedByRule Then 
+			xlApp.Quit
+		End If
+	End If 
+	
+	Dim Row as Integer = 1 'start on row 1
+	Dim CurRowVal As String = ws.Cells(row,1).Value
+	
+	While String.IsNullOrEmpty(CurRowVal) = False 'increment row until a blank one is found
+		Row += 1
+		CurRowVal = ws.Cells(row,1).Value
+	End While
+	
+	
+	If CInt(ws.Cells(2,3).Value) <= 0 Then
+		MessageBox.show ("There are no more part numbers remaining.  This rule cannot continue.  " & vbLf & "Please request more part numbers from client.  ", "No Numbers Remaining!!!", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		Goto NoMoNumbersMaen
+	Else If Cint(ws.Cells(2,3).Value) < 10
+		MessageBox.Show("There are only " & ws.Cells(2,3).Value & " part numbers remaining.  ", "Time to get more numbers!", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+	End If
+	
+	ws.Cells(row,1) = PNProp.Value
+	DisneyPN.Value = ws.Cells(row, 2).Value
+	
+NoMoNumbersMaen:
+
+	wb.Close(True) 
+	
+	If openedByRule = True
+		xlApp.Quit
+	End If
+	
+End Sub
+
+
+
+
+

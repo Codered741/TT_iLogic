@@ -1,0 +1,358 @@
+'TAIT Showfile Structure Creator
+'Purpose:
+'  To maintain consistency in show data management, this rule will create folder structure in the Showfile and store this folder path in an iProperty for future use.  It will also create an assembly, pre-configured with the correct Element/Kit information, and insert it into the current Show/Element assembly.  
+'  For Shows, the rule will create elements
+'  For Elements, the rule will create kits
+'  For kits, the rule will error. 
+
+Imports System.IO
+Imports System.IO.Path
+Imports System.Collections
+Imports System.Windows.Forms
+Imports My.Computer.FileSystem
+
+Sub Main()
+	On Error Resume Next
+	
+	If Not ThisApplication.ActiveEditDocument Is ThisApplication.ActiveDocument Then
+		MessageBox.Show("This rule cannot be run from an in-place edit.  Please open the file exclusively, and try again.  ", "No in-place creation", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		Exit Sub
+	End If
+	
+	Dim oDoc as Document = ThisApplication.ActiveEditDocument
+	Dim oCustProps as Inventor.PropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+	
+	'check if document is assembly
+	If oDoc.DocumentType <> kAssemblyDocumentObject Then
+		MessageBox.Show("Please run from an assembly.  ")
+		Exit Sub
+	End If
+	
+	usrContinue = MessageBox.Show("This will create a new Show/Element/Kit assembly and  corresponding folder structure.  Are you sure you are ready to continue? ", "Continue?", MessageBoxButtons.OKCancel, MessageBoxIcon.Question)
+	If Not usrContinue = vbOK Then
+		MsgBox("Canceling")
+		Exit Sub
+	End If
+	
+	'get DesignLevel Prop
+	Dim pDL as Inventor.Property 
+	pDL = oCustProps.Item("DesignLevel")
+	
+	'catch non-existant property
+	If Err.Number <> 0 Then
+		
+		'add DesignLevel property
+		oCustProps.Add("", "DesignLevel")
+		pDL = oCustProps.Item("DesignLevel")
+		Err.Clear
+	End If
+	
+	'handle shows and elements differently, if not configured, create show.  
+	If pDL.Value = "Show" 
+		'MessageBox.Show("This will create a new element and corresponding folder structure.  Are you sure you ")
+		CreateElement(oDoc)
+	Else If pDL.Value = "Element" Then
+		CreateKit(oDoc)
+	Else if pDL.Value = "Kit" Then
+		MessageBox.Show("Element/Kit creation can only be done from configured Show/Element Assembly.  Please check your Config, or open a Show/Element.  ", "Show/Element Only", MessageBoxButtons.OK, MessageBoxIcon.Error)
+	Else 
+		usrCreateShow = MessageBox.Show("Do you want to create a show?", "Create Show?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+		If usrCreateShow = vbYes Then
+			'show create subroutine
+			CreateShow
+		Else
+			MsgBox("Nothing left to do!" & vbLf & "¯\_(ツ)_/¯")
+			Exit Sub
+		End If
+	End If
+	
+	If Err.Number <> 0 Then 
+		MsgBox("An error occurred.  The rule may not have run completely.  " & Err.Number & " - " & Err.Description)
+	End If
+	
+End Sub
+
+
+'SUBROUTINES \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Sub CreateShow()
+	'get showfile folder - GetShowFilePath subroutine
+	Dim sfPath as String = GetShowFilePath
+	
+showNum:
+	'get job number from user = JOBNUMBER
+	Dim ShowNumber as String = InputBox("Please enter the Base Epicor Job Number.  ", "Job Number", "")
+	If Not Int32.TryParse(ShowNumber, 000000) Then 'ShowNumber.Length = 6 Then
+		MsgBox("The Show Number must be an integer.  ")
+		Goto showNum
+	End If
+	
+	If Not ShowNumber.Length = 6 Then
+		MsgBox("The Show Number must be 6 digits.  ")
+		Goto showNum
+	End If
+	'create folder in WIP
+	'$\PROJECTNAME - PROJECTNUMBER
+	dim ShowDir = "C:\_vaultWIP\Designs\" & ParsePrjName(sfPath)
+	
+	If Directory.Exists(ShowDir) Then
+			MsgBox("A folder already exists in your WIP for this show.  Please check to see if the show has already been created.  ")
+			Exit Sub
+	Else 
+		Directory.CreateDirectory(ShowDir)
+	End If
+
+	'create new assembly
+	Dim oShowAsm as AssemblyDocument = ThisApplication.Documents.Add(kAssemblyDocumentObject, "C:\_vaultWIP\Designs\Templates\TT_Kit.iam", True)
+	oShowAsm.Activate()
+	
+	'save in project folder = JOBNUMBER.iam
+	oShowAsm.SaveAs(ShowDir & "\" & ShowNumber & ".iam", False)
+	oShowAsm.ComponentDefinition.Occurrences.Item(1).Delete
+	'part number = job number
+		'done automatically as a part of save
+		
+	'fill properties
+	SetProps(oShowAsm, ParsePrjName(sfPath), "Master Assembly", sfPath & "X-REF MASTER FILES\" & ShowNumber & " - INVENTOR MASTER ASSEMBLY\", ShowNumber, "", "Show")
+	oShowAsm.Update
+	oShowAsm.Save
+	
+	MessageBox.Show("The Show was created successfully. " & vbLf & ParsePrjName(sfPath) & vbLf & ShowNumber & "-MASTER ASSEMBLY", "Show Created", MessageBoxButtons.OK)
+	
+End Sub 'CreateShow
+
+Sub CreateElement(doc as AssemblyDocument)
+	'get element project 
+	elementProj = Doc.PropertySets.Item("Design Tracking Properties").Item("Project").Value
+	'Prompt user for element number and description
+eDesc:
+	elementDesc = InputBox("Enter Element Description", "Element Description", "")
+	
+	If elementDesc.Length > 37 OrElse elementDesc.Length < 5 Then
+		MsgBox("Description must be between 5 and 37 characters.  Try again")
+		GoTo eDesc
+	End If
+
+eNumber:
+	elementNum = InputBox("Enter Element Number", "Element Number", "")
+	If Not elementNum.Length = 2 Then 
+		MsgBox("Element Number must be two digits.  Try Again.  ")
+		Goto eNumber
+	End If
+
+	
+	If Not Int32.TryParse(elementNum, 00) Then
+		MsgBox("Element Number must be an integer. Try Again.  ")
+		Err.Clear
+		Goto eNumber
+	End If
+	
+	'get show Level number
+	showNum = doc.PropertySets.Item("Design Tracking Properties").Item("Part Number").Value
+	
+	elementNum = showNum & "-" & elementNum
+	
+	Dim ElementDir = "C:\_vaultWIP\Designs\" & elementProj & "\" & elementNum & "\"
+	If Directory.Exists(ElementDir) Then
+			MsgBox("A folder already exists in your WIP for this element.  Please check to see if the element has already been created.  ")
+			Exit Sub
+	Else 
+		Directory.CreateDirectory(ElementDir)
+	End If
+	
+	Dim oElementAsm As AssemblyDocument = ThisApplication.Documents.Add(kAssemblyDocumentObject, "C:\_vaultWIP\Designs\Templates\TT_Kit.iam", True)
+	
+	oElementAsm.SaveAs(ElementDir & ElementNum & ".iam", False)
+	oElementAsm.ComponentDefinition.Occurrences.Item(1).Delete
+	
+	'Write properties to element
+	SetProps(oElementAsm, elementProj, elementDesc, "R:\" & elementProj & "\X-REF MASTER FILES\" & elementNum & " - " & elementDesc.ToUpper & " - INVENTOR\", elementNum, "Element Overview", "Element")
+	
+	Dim oTG as TransientGeometry = ThisApplication.TransientGeometry
+	Dim oMatrix as Matrix = oTG.CreateMatrix
+	
+	doc.Activate()
+	
+	Dim oElementOcc As ComponentOccurrence = doc.ComponentDefinition.Occurrences.Add(oElementAsm.FullFileName, oMatrix)
+	oMatrix.SetTranslation(oTG.CreateVector(0, 0, 0)) 
+	oElementOcc.Grounded = True
+	
+	oElementAsm.Update
+	oElementAsm.Save
+	oElementAsm.Close
+	
+	doc.save
+	
+	MessageBox.Show("The Element was created successfully. " & vbLf &  elementNum & "-" & elementDesc.ToUpper, "Element Created", MessageBoxButtons.OK)
+	
+End Sub 'CreateElement
+	
+Sub CreateKit(doc As AssemblyDocument)
+	'create kit assembly
+		'file number is element job number concatenated with user entered kit number, and saved into the same directory as element
+	'new assembly to be inserted at origin of the element assembly, and grounded.
+		'exportPath property is copied from element, concatenate \SUB ASSEMBLIES\'kitnumber' - 'KIT DESCRIPTION'\
+	
+	'get kit project from element
+	kitProj = doc.PropertySets.Item("Design Tracking Properties").Item("Project").Value
+	'get element number from element assembly
+	eleNum = doc.PropertySets.Item("Design Tracking Properties").Item("Part Number").Value
+	'get element description from element assembly
+	eleDesc = doc.PropertySets.Item("Design Tracking Properties").Item("Description").Value
+	'get element path from assembly
+	eleExportPath = doc.PropertySets.Item("Inventor User Defined Properties").Item("exportPath").Value
+	
+	'Prompt user for kit number and description
+kDesc:
+	kitDesc = InputBox("Enter Kit Description", "Kit Description", "")
+	If kitDesc.Length > 37 OrELse kitDesc.Length < 5 Then
+		MsgBox("Description must be between 5 and 37 characters.  Try again")
+		GoTo kDesc
+	End If
+
+kNumber:
+	kitNum = InputBox("Enter Kit Number", "Kit Number", "")
+	If Not kitNum.Length = 2 Then 
+		MsgBox("Kit Number must be two digits.  Try Again.  ")
+		Goto kNumber
+	End If
+	
+	'num = CInt(kitNum)
+	
+	If Not Int32.TryParse(kitNum, 00) Then
+		MsgBox("Kit Number must be an integer. Try Again.  ")
+		Err.Clear
+		Goto kNumber
+	End If
+	
+	'get show Level number
+	showNum = doc.PropertySets.Item("Design Tracking Properties").Item("Part Number").Value
+	
+	kitNum = showNum & "-" & kitNum
+	
+	Dim kitDir = Left(doc.FullFileName, InstrRev(doc.FullFileName, "\"))
+	
+	Dim okitAsm As AssemblyDocument = ThisApplication.Documents.Add(kAssemblyDocumentObject, "C:\_vaultWIP\Designs\Templates\TT_Kit.iam", True)
+	
+	okitAsm.SaveAs(kitDir & kitNum & ".iam", False)
+	okitAsm.ComponentDefinition.Occurrences.Item(1).Delete
+	
+	'Write properties to kit
+	SetProps(okitAsm, kitProj, kitDesc, eleExportPath & "\SUB ASSEMBLIES\" & kitNum & "-" & kitDesc.ToUpper & "\", kitNum, eleDesc, "Kit")
+	
+	Dim oTG as TransientGeometry = ThisApplication.TransientGeometry
+	Dim oMatrix as Matrix = oTG.CreateMatrix
+	
+	doc.Activate()
+	
+	Dim okitOcc As ComponentOccurrence = doc.ComponentDefinition.Occurrences.Add(okitAsm.FullFileName, oMatrix)
+	oMatrix.SetTranslation(oTG.CreateVector(0, 0, 0)) 
+	okitOcc.Grounded = True
+	
+	okitAsm.Update
+	okitAsm.Save
+	okitAsm.Close
+	
+	doc.save
+	
+	MessageBox.Show("The Kit was created successfully. " & vbLf &  kitNum & "-" & kitDesc.ToUpper, "Kit Created", MessageBoxButtons.OK)
+End Sub 'CreateKit
+
+Private Sub SetProps(oAsm As AssemblyDocument, Project as String, Description As String, ePath as String, JobNumber As String, ElementDesc As String, DesignLevel As String)
+	Dim oShowCustProps as PropertySet = oAsm.PropertySets.Item("Inventor User Defined Properties")
+	Dim oShowDesProps as PropertySet = oAsm.PropertySets.Item("Design Tracking Properties")
+	Dim oShowSumProps As PropertySet = oAsm.PropertySets.Item("Inventor Summary Information")
+	'part number = job number
+		'done automatically as a part of save
+		
+	'Project Name = FolderName
+	oShowDesProps.Item("Project").Value = Project
+	'description = "Master Assembly"
+	oShowDesProps.Item("Description").Value = Description
+	'set creation date to Now
+	'oShowDesProps.Item("Creation Time").Value = DateString 
+		' set automatically on first save
+
+	'set Designer to current user
+	oShowDesProps.Item("Designer").Value = ThisApplication.UserName.Replace(".", " ")
+	
+	'Set revision to "0"
+	oShowSumProps.Item("Revision Number").Value = "0"
+	
+	'store path to "exportPath" iprop
+	oShowCustProps.Add(ePath, "exportPath")
+	If Directory.Exists(oShowCustProps.Item("exportPath").Value) = False Then
+		Directory.CreateDirectory(oShowCustProps.Item("exportPath").Value)
+	End If
+	
+	'Run Kit Epicor Config Rule (set job number)
+	oShowCustProps.Item("JobNum").Value = JobNumber
+	'element name = ""
+	oShowCustProps.Item("Element_Desc").Value = ElementDesc
+	
+	oShowCustProps.Item("DesignLevel").Value = DesignLevel
+	oAsm.ComponentDefinition.Parameters.UserParameters.Item("DesignLevel").Value = DesignLevel
+End Sub
+
+' Sub CreateFolder(FolderName as String, doc as Document)
+	' 'create a folder of the entered name, at the provided path.	
+	' Directory.CreateDirectory(Path & FolderName)
+' End Sub 'CreateFolder
+
+'FUNCTIONS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
+Function GetShowFilePath() As String
+
+	' Define folder browse dialog
+	Dim Dialog = New FolderBrowserDialog()
+
+	' Set options for folder browser dialog
+	Dialog.SelectedPath = "R:\"
+	Dialog.ShowNewFolderButton = False
+	Dialog.Description = "Choose Folder"
+	
+	' Show dialog box
+	If DialogResult.OK = Dialog.ShowDialog() Then
+		' User clicked 'ok' on dialog box - capture the export path
+		Return Dialog.SelectedPath & "\"	
+	Else
+		' User clicked 'cancel' on dialog box - exit
+		 Return ""
+	End If
+	
+End Function 'GetShowFilePath
+
+' Function ParsePrjNum(folder as String) As String
+	
+	' 'R:\4WALL ENTERTAINMENT 2018 - 18A0039\
+	' 'R:\4WALL ENTERTAINMENT 2018 - 18-A-0039\
+	' test = folder.Length - InStrRev(folder,"-") - 1
+	
+	' If test = 4 Then
+		' Return Left(Right(folder, 10), 9)
+	' Else If test = 8 Then
+		' Return Left(Right(folder, 8), 7)
+	' Else
+		' Return ""
+	' End If
+	
+' End Function 'ParsePrjNum
+
+Function ParsePrjName(folder as String) As String
+	' Dim test As Integer = folder.Length - InStr(folder, "-")
+	' Dim numLen as Integer = 0
+	' Dim FolderLen as Integer = folder.Length
+	' Dim NameLen as Integer
+	
+	' If test = 11 Then
+		' numLen = 12
+	' Else If test = 9 Then
+		' numLen = 10
+	' Else 
+		' Return ""
+	' End If
+	
+	' NameLen = FolderLen - NumLen
+	' Return Right(Left(folder, NameLen), Left(folder, NameLen).Length - 3)
+	Prj = Right(folder, folder.Length -3)
+	Return Left(Prj, Prj.Length - 1)
+	
+End Function 'ParsePrjName
