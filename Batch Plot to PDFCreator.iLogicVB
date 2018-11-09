@@ -47,6 +47,13 @@ Sub Main()
 		Dim RefPN
 		Dim PrinterName as String = "PDFCreator"
 		
+		Dim oProgressBar as Inventor.ProgressBar
+		Dim DocCount = oRefDocs.Count
+		oMessage = "Printing..."
+		oProgressBar = ThisApplication.CreateProgressBar(False, DocCount, oMessage)
+		oProgressBar.Message = "Loading..."
+		
+		
 		'setup options for open
 		Dim oOptions as NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
 		oOptions.Value("DeferUpdates") = True
@@ -62,6 +69,9 @@ Sub Main()
 
 		'Attempt to find a drawing file of the same name as the model doc
 		RefDwgFullFileName = FindDrawingFile(oDoc)
+		
+		oProgressBar.Message = "Checking for drawing of " & oDoc.FullFileName
+		oProgressBar.UpdateProgress
 		
 		If RefDwgFullFileName.Length > 5 Then 
 			
@@ -88,10 +98,10 @@ Sub Main()
 			End If
 			
 		End If
-
+		
 		If RefDwgFullFileName.Length > 5 Then
 			ThisApplication.Documents.OpenWithOptions(RefDwgFullFileName, oOptions, True)
-			
+		
 			Try
 				DwgPrint(PrinterName)
 			Catch 
@@ -125,6 +135,9 @@ Sub Main()
 			'Get part number property of the filename
 			iProps = oRefDoc.PropertySets.Item("Design Tracking Properties")
 			RefPN = iProps.Item("Part Number")
+			
+			oProgressBar.Message = "Checking for drawing of " & oRefDoc.FullFileName
+			oProgressBar.UpdateProgress
 			
 			'write to log
 			oAppend.Write(oRefDoc.FullFileName & ",")
@@ -194,6 +207,8 @@ Sub Main()
 		
 		oAppend.Flush()
 		oAppend.Close()
+		
+		oProgressBar.Close
 		
 		VaultAddin.Activate()
 		
