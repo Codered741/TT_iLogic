@@ -13,7 +13,7 @@ Sub Main()
 	Dim LString as String
 	Dim WString as String
 	Dim TString as String
-	Dim VersionNum as String = "2.2"
+	Dim VersionNum as String = "2.2.1"
 	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
 	Dim MsgComp as String = ""
 	Dim PropAddTries as Integer = 0
@@ -331,7 +331,7 @@ Sub Main()
 	'run rule to fill values for machining estimation
 	If ThisApplication.UserName = "Cody Redding" Then
 		'iLogicVb.RunExternalRule("Time Estimate.iLogicVb") 'not ready for primetime
-		MsgBox("You are AWESOME!")
+		'MsgBox("You are AWESOME!")
 	End If
 	
 	'Save Document
