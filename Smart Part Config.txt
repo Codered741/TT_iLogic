@@ -294,10 +294,14 @@ Sub Main()
 	
 	'measure bounding box, flat pattern for sheet metal parts.  
 	If oDoc.SubType = "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}" Then ' Determine if part is Sheet Metal
-		'Measure part and write to parameters, if sheet metal
-		Parameter("XDIM") = SheetMetal.FlatExtentsLength
-		Parameter("YDIM") = SheetMetal.FlatExtentsWidth
-		Parameter("ZDIM") = Parameter("Thickness")
+		Try
+			'Measure part and write to parameters, if sheet metal
+			Parameter("XDIM") = SheetMetal.FlatExtentsLength
+			Parameter("YDIM") = SheetMetal.FlatExtentsWidth
+			Parameter("ZDIM") = Parameter("Thickness")
+		Catch 
+			MessageBox.Show("An Error occurred while measuring the extents of the flat pattern.  Please make sure the flat pattern is valid.  ", "Smart Part Config Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		End Try
 	Else
 		'Measure part and write to parameters, if standard
 		Parameter("XDIM") = Measure.ExtentsLength
