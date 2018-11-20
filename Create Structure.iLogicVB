@@ -48,12 +48,34 @@ Sub Main()
 	End If
 	
 	'handle shows and elements differently, if not configured, create show.  
-	If pDL.Value = "Show" 
-		'MessageBox.Show("This will create a new element and corresponding folder structure.  Are you sure you ")
-		CreateElement(oDoc)
-	Else If pDL.Value = "Element" Then
-		CreateKit(oDoc)
+	If pDL.Value = "Show" 'create Elements
+	
+		If oCustProps.Item("AutoStruct").Value = True Then
+			CreateElement(oDoc)
+		Else
+			MessageBox.Show("This show was not created with the correct rule.  Please contact #des_inventor for assistance", "Not Auto Assembly", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			Exit Sub
+		End If
+		
+		If Err.Number <> 0 Then 
+			MessageBox.Show("This show was not created with the correct rule.  Please contact #des_inventor for assistance", "Not Auto Assembly", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		End If
+		
+	Else If pDL.Value = "Element" Then 'Create Kits
+	
+		If oCustProps.Item("AutoStruct").Value = True Then
+			CreateKit(oDoc)
+		Else
+			MessageBox.Show("This Element was not created with the correct rule.  Please contact #des_inventor for assistance", "Not Auto Assembly", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			Exit Sub
+		End If
+		
+		If Err.Number <> 0 Then 
+			MessageBox.Show("This Element was not created with the correct rule.  Please contact #des_inventor for assistance", "Not Auto Assembly", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		End If
+		
 	Else if pDL.Value = "Kit" Then
+	
 		MessageBox.Show("Element/Kit creation can only be done from configured Show/Element Assembly.  Please check your Config, or open a Show/Element.  ", "Show/Element Only", MessageBoxButtons.OK, MessageBoxIcon.Error)
 	Else 
 		usrCreateShow = MessageBox.Show("Do you want to create a show?", "Create Show?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
@@ -291,6 +313,14 @@ Private Sub SetProps(oAsm As AssemblyDocument, Project as String, Description As
 	
 	oShowCustProps.Item("DesignLevel").Value = DesignLevel
 	oAsm.ComponentDefinition.Parameters.UserParameters.Item("DesignLevel").Value = DesignLevel
+	
+	Try 
+		prop = oShowCustProps.Item("AutoStruct")
+	Catch 
+		oShowCustProps.Add(True, "AutoStruct")
+	End Try
+	oShowCustProps.Item("AutoStruct").Value = True
+	
 End Sub
 
 ' Sub CreateFolder(FolderName as String, doc as Document)
