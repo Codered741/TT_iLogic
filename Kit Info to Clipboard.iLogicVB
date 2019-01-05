@@ -1,0 +1,113 @@
+'Kit Data to clipboard for Slack kit release
+Imports My.Computer.Clipboard
+Sub Main()
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	Dim FinalText as String
+	Dim DesPropSet as PropertySet = oDoc.PropertySets.Item("Design Tracking Properties")
+	'Dim SumPropSet as PropertySet = oDoc.PropertySets.Item("Inventor Summary Information")
+	If Not ThisApplication.UserName = "Cody Redding" Then
+		MsgBox("This rule is not ready.  Please try again later.  ")
+	End If
+	
+	'Check that this is an ASM
+	'Check ASM was created by creator tool
+	
+	Dim ProjLine as String = "Project Name:" & DesPropSet.Item("Project").Value.ToUpper & vbLf'Concatenate "Project Name:" & Project & vbLf
+	
+	'Record Kit info line
+	Dim KitLine as String = "New Element/Kit# & Name: "& DesPropSet.Item("Part Number").Value & "-" & _
+		DesPropSet.Item("Description").Value.ToUpper & vbLf 'Concatenate "New Element/Kit# & Name:" & Part Number & "-" & Description & vbLf
+	
+	'Record Design Line
+	Dim Teams as New List(Of String)
+	Teams.Add("Cody")
+	Teams.Add("Andy")
+	Teams.Add("Boris")
+	Teams.Add("PI - Mechanical")
+	Teams.Add("Alec")
+	Teams.Add("Dale")
+	Teams.Add("Lotito")
+	Teams.Add("ARod")
+	Teams.Add("Detailers")
+	Teams.Add("Touring Controls")
+	Teams.Add("PI Controls")
+	Teams.Sort()
+	
+	Dim selTeam as String = InputListBox("Please select the design team. ", Teams, Teams(0), "Team Selector")
+	Dim selHrs as String = InputBox("Please enter the number of Design Hours.  ", "Design Hours", "40")
+	Dim selDueDate as String = InputBox("Please enter the Kit Due Date.  ", "Due Date", Now.AddDays(7).ToString("yyyy-MM-dd"))
+	Dim DesignLine as String = "Design Team/Hrs/Due: " & selTeam & "/" & selHrs & "/" &  selDueDate
+	
+	'Set Inspection required line
+	'Prompt User for Inspection Required
+	Dim IRLine as String
+	Dim DefButton as System.Windows.Forms.MessageBoxDefaultButton = 256
+	Dim IrAns = MessageBox.Show("Is Inspection Required for this Kit?", "Inspection Required?", MessageBoxButtons.YesNo, MessageBoxIcon.Question, DefButton) 'message box, yes no
+	
+	Dim IrText As String
+	If IrAns = vbYes Then
+		IrText = "YES!"
+	Else
+		IrText = "NO"
+	End If
+	
+	IRLine = "Inspection Required?: " & IrText & vbLf
+	
+	'Record MTJ Line
+	Dim MTJLine as String = InputBox("Please enter Quantity: ", "MTJ Quantity", "1")
+	MTJLine = "Make to Job Qty: " & MTJLine & vbLf
+	
+	'Record Notes Line
+	Dim NotesAns as String = InputBox("Please enter any notes", "Any Notes","")
+	Dim NotesLine as String 
+	IF NotesAns = "" Then
+		NotesLine = ""
+	Else 
+		NotesLine =	"Notes: " & NotesAns & vbLf
+	End IF
+	
+	'Prompt User for Priority emoji
+	'setup list box with priority settings
+	Dim Emoji as String
+	Dim PriorityAns 
+	Dim PriorityList as New List(Of String)
+	PriorityList.Add("Right Now")
+	PriorityList.Add("By End of the Day")
+	PriorityList.Add("Can be done Tomorrow")
+	PriorityList.Add("Need by End of the Week")
+	PriorityList.Add("Need by End of the Month")
+	
+	PriorityAns = InputListBox("Select Priority", PriorityList, PriorityList(1), "Kit Info Emoji Helper", "Priority")
+	
+	Select Case PriorityAns
+		Case PriorityList(1)
+			Emoji = ":red_circle:" & vbLf
+		Case PriorityList(2)
+			Emoji = ":black_circle:" & vbLf
+		Case PriorityList(3)
+			Emoji = ":large_blue_circle:" & vbLf
+		Case PriorityList(4)
+			Emoji = ":white_circle:" & vbLf
+		Case PriorityList(1)
+			Emoji = ":black_circle_for_record:" & vbLf
+	End Select
+	
+	'Concatenate Final Output String
+	FinalText = ProjLine & KitLine & DesignLine & vbLf & vbLf & IRLine & MTJLine & NotesLine & Emoji
+	
+	'Write to Clipboard
+	My.Computer.Clipboard.SetText(FinalText)
+	
+	MsgBox("The Request has been copied to the Clipboard.  ")
+	
+End Sub
+
+' Project Name: 
+' New Element/Kit# & Name: 
+' Design Team/Hrs/Due: 
+' Fab Team/Hrs/Due:  
+
+' Inspection required?:
+' Make to Job Qty:
+' Notes:
+' cc: 

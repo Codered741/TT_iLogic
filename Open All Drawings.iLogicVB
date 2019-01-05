@@ -1,0 +1,223 @@
+Imports System.IO
+Imports System.IO.File
+'Imports System.IO.Path
+'Imports System.Collections
+'Imports My.Computer.FileSystem
+
+
+'Type queueType = Type.GetTypeFromProgID("PDFCreator.JobQueue")
+'Activator.CreateInstance(queueType)
+
+' AddReference "C:\Program Files\PDFCreator\PDFCreator.ComWrapper.dll"
+' Imports pdfforge.PDFCreator.UI.ComWrapper
+
+Sub Main()
+
+	'Dim usrTimeAck = MessageBox.Show("This rule will find all drawings of parts referenced in the BOM, print them to PDF's and merge them to a single document.  "  _
+	'	& vbLf & "This process can take some time to run, and cannot be stopped once started.  " _ 
+	'	& vbLf & "Please ensure you have PDFCreator installed before continuing.  ", "Time Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
+		
+	'If usrTimeAck = vbCancel Then
+	'	Exit Sub
+	'End If
+	
+	
+	'Dim VaultAddin As Inventor.ApplicationAddIn = ThisApplication.ApplicationAddIns.ItemById("{48B682BC-42E6-4953-84C5-3D253B52E77B}")
+	'VaultAddin.Deactivate()
+
+	 Dim oProgressBar as Inventor.ProgressBar
+	
+	Try 
+		Dim oDoc as Document = ThisApplication.ActiveDocument
+		Dim FileNameMinLong as Integer = 21
+		
+		'check if active document is an assembly
+		If isAsm(oDoc) = False
+			MsgBox("Please run from an Assembly")
+			Return
+		End If
+		
+		'write to iLogic Log
+		SharedVariable("LogVar") = "Open All Drawings" 
+		iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+		
+		Dim lstDrawings as New List(of String)
+		
+		Dim BOMDocs As New List(of String)
+	
+		'get list of part numbers from Structured BOM
+		GetDocsFromBOM(ThisApplication.ActiveDocument, BOMDocs)
+		
+		
+		
+		' Dim DocCount = oRefDocs.Count
+		 oProgressBar = ThisApplication.CreateProgressBar(False, BOMDocs.Count, "Finding Drawings...")
+
+		'Attempt to find a drawing file of the same name as the assembly doc
+		RefDwgFullFileName = FindDrawingFilePN(oDoc)
+		
+		oProgressBar.Message = "Checking for drawing of " & oDoc.FullFileName
+		oProgressBar.UpdateProgress
+		
+		If RefDwgFullFileName.Length > FileNameMinLong Then 
+		
+			lstDrawings.Add(RefDwgFullFileName)
+			
+		End If
+
+		
+		'Dim bDoc as Document
+		For Each BOMDoc as String In BOMDocs
+			bDoc = ThisApplication.Documents.ItemByName(BOMDoc) 'convert full file name to document object
+			
+			oProgressBar.Message = "Checking for drawing of " & BOMDoc 'oRefDoc.FullFileName
+			oProgressBar.UpdateProgress
+
+			'Attempt to find a drawing file of the same name as the model doc
+			RefDwgFullFileName = FindDrawingFilePN(bDoc)
+			
+			If RefDwgFullFileName.Length > FileNameMinLong Then 
+				
+				lstDrawings.Add(RefDwgFullFileName)
+
+			End If
+			
+		Next
+		
+		oProgressBar.Close		
+		
+		oProgressBar = ThisApplication.CreateProgressBar(False, lstDrawings.Count, "Opening Drawings...")
+		
+		For Each Dwg In lstDrawings
+			oProgressBar.Message = "Opening: " & Dwg
+			oProgressBar.UpdateProgress
+			'msgbox(Dwg)
+			'doc = ThisApplication.Documents.ItemByName(Dwg)
+			ThisApplication.Documents.Open(dwg)
+			
+		' For Each DWG In lstDrawings
+			' ThisApplication.Documents.Open(ThisApplication.Documents.ItemByName(DWG))
+		 Next
+		oProgressBar.Close
+		
+	Catch Ex as Exception
+	
+		MsgBox("Main error: " & Ex.Message)
+		oProgressBar.Close
+		
+	Finally 
+	
+		'VaultAddin.Activate
+		
+	End Try
+	
+End Sub 'Main
+
+
+Sub GetDocsFromBOM(oDoc as Document, ByRef BOMDocs as List(of String))
+	
+	If oDoc.DocumentType <> kAssemblyDocumentObject Then
+		MsgBox("This rule can only be run from an assembly")
+		Exit Sub
+	End If
+	
+	Dim oDocBOM As BOM = oDoc.ComponentDefinition.BOM
+	
+	Dim oBOMView as BOMView = oDocBOM.BOMViews.Item("Structured")
+	
+	oDocBOM.StructuredViewEnabled = True
+	oDocBOM.StructuredViewFirstLevelOnly = False
+	oDocBOM.PartsOnlyViewEnabled = False
+	
+	Dim oBOMRows As BOMRowsEnumerator = oBOMView.BOMRows
+	Dim oCompDef As ComponentDefinition
+	Dim oPNProp as Inventor.Property
+	
+	For Each oRow as BOMRow in oBOMRows
+		
+			GetBOMRowDocFile(oRow, BOMDocs)
+		
+	Next 
+	
+	'BOMDocs.Sort()
+	
+End Sub
+
+Sub GetBOMRowDocFile(oRow as BOMRow, ByRef BOMDocs as List(of String))
+	
+	Dim oCompDef As ComponentDefinition
+	
+	'Add the part number of the current row, for parts that have children
+	oCompDef = oRow.ComponentDefinitions.Item(1)
+	
+	If oCompDef.Type = 100675072 Then 'exclude Virtual Components
+		'do nothing
+	Else
+
+		DocName = oCompDef.Document.FullFileName
+
+		If Not BOMDocs.Contains(DocName) Then
+			BOMDocs.Add(DocName)
+		End If
+		
+	End If
+		
+	If Not oRow.ChildRows Is Nothing Then
+	
+		For Each oChildRow as BOMRow in oRow.ChildRows		
+			GetBOMRowDocFile(oChildRow, BOMDocs)
+		Next
+		
+	End If
+	
+End Sub
+
+Function FindDrawingFilePN(PartOrAssemblyDoc As Document) As String
+    Dim fullFilenamePN As String
+    fullFilenamePN = PartOrAssemblyDoc.fullFilename
+   
+    ' Extract the path from the full filename.
+    Dim path As String = ThisApplication.DesignProjectManager.ActiveDesignProject.WorkspacePath
+    'path = Left$(fullFilenamePN, InStrRev(fullFilenamePN, "\"))
+
+	Dim iProps as PropertySet = PartOrAssemblyDoc.PropertySets.Item("Design Tracking Properties")
+	Dim pn = iProps.Item("Part Number")
+	
+    Dim filename As String = pn.Value
+
+    ' Find if the drawing exists.
+    Dim drawingFilename As String
+    drawingFilename = ThisApplication.DesignProjectManager.ResolveFile(path, filename & ".dwg")
+   
+    ' Check the result.
+    If drawingFilename = "" Then
+       
+        ' Find if the drawing exists.
+        drawingFilename = ThisApplication.DesignProjectManager.ResolveFile(path, filename & ".idw")
+   
+        ' Return the result.
+        If drawingFilename <> "" Then
+            Return drawingFilename
+        Else
+            Return ""
+        End If
+    Else
+        ' Return the result.
+         Return drawingFilename
+    End If
+End Function 'FindDrawingFilePNN
+
+
+Function DocumentFileName(Doc As String) As String
+	DocumentFileName = Left(Doc, Doc.Length - 4)
+	'MsgBox(DocumentFileName)
+End Function 'DocumentFileName
+
+Function isAsm(ThisDoc As Document) As Boolean
+	Debug.Print (ThisDoc.DocumentType)
+	If ThisDoc.DocumentType = kAssemblyDocumentObject Then
+		isAsm = True
+	Else
+		isAsm = False
+	End If
+End Function 'isAsm
