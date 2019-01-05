@@ -46,8 +46,7 @@ Sub Main()
 End Sub
 
 'Functions
-
-Function ChooseFolderLocation(oDoc as Document)
+Function ChooseFolderLocation(oDoc as Document) As String
 	' Define folder browse dialog
 	Dim Dialog = New FolderBrowserDialog()
 
@@ -69,7 +68,7 @@ Function ChooseFolderLocation(oDoc as Document)
 		oDoc.Save
 	Catch
 		MsgBox("You do not have write permission for this document.  The selected path may not be saved.  ")
-		Exit Sub
+		Return ""
 	End Try
 	
 End Function
