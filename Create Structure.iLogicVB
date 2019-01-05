@@ -14,6 +14,9 @@ Imports My.Computer.FileSystem
 Sub Main()
 	On Error Resume Next
 	
+	SharedVariable("LogVar") = "Create Structure"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
 	If Not ThisApplication.ActiveEditDocument Is ThisApplication.ActiveDocument Then
 		MessageBox.Show("This rule cannot be run from an in-place edit.  Please open the file exclusively, and try again.  ", "No in-place creation", MessageBoxButtons.OK, MessageBoxIcon.Error)
 		Exit Sub
