@@ -1,9 +1,19 @@
-ViewPlaceH = (ThisDrawing.Sheet("Title Page:1").Width * 0.66 ul) + HOverview
-ViewPlaceV = (ThisDrawing.Sheet("Title Page:1").Height/3) + VOverview
+Sub Main()
+	'Try
+	Dim oDoc as DrawingDocument = ThisApplication.ActiveDocument
+	Dim oSheets as Sheets = oDoc.Sheets
+	Dim shtTitle as Sheet = oSheets.Item(1)
+	
+	If shtTitle.DrawingViews.Count > 0 Then
+		Dim oOverview as DrawingView = shtTitle.DrawingViews.Item(1)
 
-ThisDrawing.Sheet("Title Page:1").View("Overview").SetCenter(ViewPlaceH, ViewPlaceV)
-ThisDrawing.Sheet("Title Page:1").View("Overview").Scale = 1
-viewHeight = ThisDrawing.Sheet("Title Page:1").View("Overview").Height
-ThisDrawing.Sheet("Title Page:1").View("Overview").Scale = (5 / viewHeight)
+		ViewPlaceH = (shtTitle.Width * 0.66) + (Parameter("HOverview")*2.54)
+		ViewPlaceV = (shtTitle.Height * 0.33) + (Parameter("VOverview")*2.54)
 
-'ActiveSheet.View("VIEW1").SetSpacingToCorner(distanceX, distanceY, SheetCorner.TopLeft)
+		Dim oViewCenter as Point2d = ThisApplication.TransientGeometry.CreatePoint2d(ViewPlaceH, ViewPlaceV)
+		oOverview.Center = oViewCenter
+		oOverview.Scale = 1
+		oOverview.Scale = 5*2.54 / oOverview.Height
+	End If
+	
+End Sub
