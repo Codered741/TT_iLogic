@@ -23,7 +23,7 @@ Sub Main
 			ModelFileName = Right(oModelDoc.FullFileName, oModelDoc.FullFileName.Length - InStrRev(oModelDoc.FullFileName, "\"))
 			'msgbox(ModelFileName)
 			If ModelFileName.Contains(oDoc.PropertySets.Item("Design Tracking Properties").Item("Part Number").Value) AndAlso oModelDoc.DocumentType <> kPresentationDocumentObject Then  'DocumentType = kAssemblyDocumentObject OrElse oModelDoc.DocumentType = kPartDocumentObject
-				msgbox(oModelDoc.FullFileName)
+				'MsgBox(oModelDoc.FullFileName)
 				Exit For
 			End If
 		Next
@@ -41,7 +41,7 @@ Sub Main
 	
 	'check file type 
 	If oDoc.DocumentType = kDrawingDocumentObject Then
-		oTemplate = "C:\_vaultWIP\Designs\Templates\Universal\Universal Orlando Bourne.dwg"		'file to copy events from
+		oTemplate = "C:\_vaultWIP\Designs\Templates\Universal\US_FLORIDA\Universal Orlando Bourne.dwg"		'file to copy events from
 	'ElseIf oDoc.DocumentType = kPartDocumentObject Then
 		'oTemplate = "\\server\departments\CAD\Inventor\Templates\Standard.ipt"   'file to copy events from
 	Else
@@ -66,12 +66,14 @@ Sub Main
 	SymbolCopy(oTemplateDoc, oDoc, "TubeWeldTyp")
 	
 	Dim IsKit = vbNo
-	Try 
-		If oModelDoc.PropertySets.Item("Inventor User Defined Properties").Item("DesignLevel") = "Kit" Then
-			IsKit = MessageBox.Show("Is this a kit?","Kit?", MessageBoxButtons.YesNo,MessageBoxIcon.Question)
-		End If 
-	Catch
-	End Try
+	IsKit = MessageBox.Show("Is this a kit?","Kit?", MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+	' Try 
+		' If oModelDoc.PropertySets.Item("Inventor User Defined Properties").Item("DesignLevel") = "Kit" _
+		 ' OrElse oModelDoc.PropertySets.Item("Inventor User Defined Properties").Item("DesignLevel") = "Element" Then
+			' IsKit = MessageBox.Show("Is this a kit?","Kit?", MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+		' End If 
+	' Catch
+	' End Try
 	
 	Dim oSheets As Sheets = oDoc.Sheets
 	Dim oSheet as Sheet = oDoc.Sheets.Item(1)
