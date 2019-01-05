@@ -107,7 +107,7 @@ Sub Main()
 					End If
 				End If
 			Else 
-				AttachFile = vbYes 'MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+				AttachFile = MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
 			End If
 			
 			'Iterate through all sheets, exporting and attaching each sheet individually

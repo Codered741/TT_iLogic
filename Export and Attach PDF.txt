@@ -118,7 +118,7 @@
 			
 			If mPDF.Value = False Then
 			
-				AttachFile = vbYes 'MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+				AttachFile = MessageBox.Show("Would you like to create this file as an attachment?", "Create Attachment?",MessageBoxButtons.YesNo,MessageBoxIcon.Question)
 			
 				If AttachFile = vbYes Then
 				
