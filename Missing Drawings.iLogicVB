@@ -28,8 +28,12 @@ Sub MissingDrawings()
 	Dim oAsmDoc As AssemblyDocument 'define the active document as an assembly file
 	oAsmDoc = ThisApplication.ActiveDocument
 	
-	Dim oRefDocs As DocumentsEnumerator = oAsmDoc.AllReferencedDocuments 'look at the files referenced by the assembly
+	Dim oRefDocs As New List(Of String)'DocumentsEnumerator = oAsmDoc.AllReferencedDocuments 'look at the files referenced by the assembly
+	Dim oRefDocName As String
 	Dim oRefDoc As Document
+	
+	'get list of part numbers from Structured BOM
+	GetDocsFromBOM(oAsmDoc, oRefDocs)
 	
 	Dim oFile As String
 	oFile = ThisDoc.PathAndFileName(False) & ".txt"
@@ -60,7 +64,8 @@ Sub MissingDrawings()
 		
 	'work the the drawing files for the referenced models
 	'this expects that the model has a drawing of the same name
-	For Each oRefDoc In oRefDocs
+	For Each oRefDocName In oRefDocs
+		oRefDoc = ThisApplication.Documents.ItemByName(oRefDocName)
 		If oRefDoc.DocumentType = kPartDocumentObject OrElse oRefDoc.DocumentType = kAssemblyDocumentObject Then
 			' Dim props as PropertySet
 			props = oRefDoc.PropertySets.Item("Inventor User Defined Properties")
@@ -192,3 +197,32 @@ Function FindDrawingFile(PartOrAssemblyDoc As Document)
         FindDrawingFile = drawingFilename
     End If
 End Function
+
+
+Sub GetDocsFromBOM(oDoc as Document, ByRef BOMDocs as List(of String))
+	
+	If oDoc.DocumentType <> kAssemblyDocumentObject Then
+		MsgBox("This rule can only be run from an assembly")
+		Exit Sub
+	End If
+	
+	Dim oDocBOM As BOM = oDoc.ComponentDefinition.BOM
+
+	oDocBOM.StructuredViewEnabled = True
+	oDocBOM.StructuredViewFirstLevelOnly = False
+	oDocBOM.PartsOnlyViewEnabled = False
+	
+	Dim oBOMView as BOMView = oDocBOM.BOMViews.Item("Structured")	
+	Dim oBOMRows As BOMRowsEnumerator = oBOMView.BOMRows
+	Dim oCompDef As ComponentDefinition
+	Dim oPNProp as Inventor.Property
+	
+	For Each oRow as BOMRow in oBOMRows
+		
+			GetBOMRowDocFile(oRow, BOMDocs)
+		
+	Next 
+	
+	'BOMDocs.Sort()
+	
+End Sub
