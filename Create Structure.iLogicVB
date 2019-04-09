@@ -103,7 +103,7 @@ Sub CreateShow()
 	'get showfile folder - GetShowFilePath subroutine
 	Dim sfPath as String = GetShowFilePath
 	
-showNum:
+	showNum:
 	'get job number from user = JOBNUMBER
 	Dim ShowNumber as String = InputBox("Please enter the Base Epicor Job Number.  ", "Job Number", "")
 	If Not Int32.TryParse(ShowNumber, 000000) Then 'ShowNumber.Length = 6 Then
@@ -119,7 +119,7 @@ showNum:
 	'$\PROJECTNAME - PROJECTNUMBER
 	dim ShowDir = "C:\_vaultWIP\Designs\" & ParsePrjName(sfPath)
 	
-	If Directory.Exists(ShowDir) Then
+	If Directory.Exists(ShowDir & ShowNumber & "\") Then
 			MsgBox("A folder already exists in your WIP for this show.  Please check to see if the show has already been created.  ")
 			Exit Sub
 	Else 
@@ -138,6 +138,7 @@ showNum:
 		
 	'fill properties
 	SetProps(oShowAsm, ParsePrjName(sfPath), "Master Assembly", sfPath & "X-REF MASTER FILES\" & ShowNumber & " - INVENTOR MASTER ASSEMBLY\", ShowNumber, "", "Show")
+
 	oShowAsm.Update
 	oShowAsm.Save
 	
@@ -149,7 +150,7 @@ Sub CreateElement(doc as AssemblyDocument)
 	'get element project 
 	elementProj = Doc.PropertySets.Item("Design Tracking Properties").Item("Project").Value
 	'Prompt user for element number and description
-eDesc:
+	eDesc:
 	elementDesc = InputBox("Enter Element Description", "Element Description", "")
 	
 	If elementDesc.Length > 37 OrElse elementDesc.Length < 5 Then
@@ -157,7 +158,7 @@ eDesc:
 		GoTo eDesc
 	End If
 
-eNumber:
+	eNumber:
 	elementNum = InputBox("Enter Element Number", "Element Number", "")
 	If Not elementNum.Length = 2 Then 
 		MsgBox("Element Number must be two digits.  Try Again.  ")
@@ -186,7 +187,7 @@ eNumber:
 	
 	Dim oElementAsm As AssemblyDocument = ThisApplication.Documents.Add(kAssemblyDocumentObject, "C:\_vaultWIP\Designs\Templates\TT_Kit.iam", True)
 	
-	oElementAsm.SaveAs(ElementDir & ElementNum & ".iam", False)
+	oElementAsm.SaveAs("C:\_vaultWIP\Designs\" & elementProj & "\" & elementNum & ".iam", False)
 	oElementAsm.ComponentDefinition.Occurrences.Item(1).Delete
 	
 	'Write properties to element
@@ -201,6 +202,8 @@ eNumber:
 	oMatrix.SetTranslation(oTG.CreateVector(0, 0, 0)) 
 	oElementOcc.Grounded = True
 	
+	oElementAsm.DisplayName = elementNum & " - " & elementDesc.ToUpper
+	
 	oElementAsm.Update
 	oElementAsm.Save
 	oElementAsm.Close
@@ -210,7 +213,7 @@ eNumber:
 	MessageBox.Show("The Element was created successfully. " & vbLf &  elementNum & "-" & elementDesc.ToUpper, "Element Created", MessageBoxButtons.OK)
 	
 End Sub 'CreateElement
-	
+
 Sub CreateKit(doc As AssemblyDocument)
 	'create kit assembly
 		'file number is element job number concatenated with user entered kit number, and saved into the same directory as element
@@ -227,14 +230,14 @@ Sub CreateKit(doc As AssemblyDocument)
 	eleExportPath = doc.PropertySets.Item("Inventor User Defined Properties").Item("exportPath").Value
 	
 	'Prompt user for kit number and description
-kDesc:
+	kDesc:
 	kitDesc = InputBox("Enter Kit Description", "Kit Description", "")
 	If kitDesc.Length > 37 OrELse kitDesc.Length < 5 Then
 		MsgBox("Description must be between 5 and 37 characters.  Try again")
 		GoTo kDesc
 	End If
 
-kNumber:
+	kNumber:
 	kitNum = InputBox("Enter Kit Number", "Kit Number", "")
 	If Not kitNum.Length = 2 Then 
 		MsgBox("Kit Number must be two digits.  Try Again.  ")
@@ -272,6 +275,8 @@ kNumber:
 	Dim okitOcc As ComponentOccurrence = doc.ComponentDefinition.Occurrences.Add(okitAsm.FullFileName, oMatrix)
 	oMatrix.SetTranslation(oTG.CreateVector(0, 0, 0)) 
 	okitOcc.Grounded = True
+	
+	okitAsm.DisplayName = kitNum &  " - " & kitDesc.ToUpper
 	
 	okitAsm.Update
 	okitAsm.Save
@@ -326,11 +331,6 @@ Private Sub SetProps(oAsm As AssemblyDocument, Project as String, Description As
 	
 End Sub
 
-' Sub CreateFolder(FolderName as String, doc as Document)
-	' 'create a folder of the entered name, at the provided path.	
-	' Directory.CreateDirectory(Path & FolderName)
-' End Sub 'CreateFolder
-
 'FUNCTIONS \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 Function GetShowFilePath() As String
 
@@ -352,22 +352,6 @@ Function GetShowFilePath() As String
 	End If
 	
 End Function 'GetShowFilePath
-
-' Function ParsePrjNum(folder as String) As String
-	
-	' 'R:\4WALL ENTERTAINMENT 2018 - 18A0039\
-	' 'R:\4WALL ENTERTAINMENT 2018 - 18-A-0039\
-	' test = folder.Length - InStrRev(folder,"-") - 1
-	
-	' If test = 4 Then
-		' Return Left(Right(folder, 10), 9)
-	' Else If test = 8 Then
-		' Return Left(Right(folder, 8), 7)
-	' Else
-		' Return ""
-	' End If
-	
-' End Function 'ParsePrjNum
 
 Function ParsePrjName(folder as String) As String
 	' Dim test As Integer = folder.Length - InStr(folder, "-")
