@@ -6,113 +6,47 @@
 	
 	'Grab the Assembly Document
 
-	Dim oDoc As Document
+	Dim oDoc As AssemblyDocument
 	oDoc = ThisApplication.ActiveDocument
 
 	'Grab the Active Assembly Component Definition
 
-	' Dim oAsmCompDef As AssemblyComponentDefinition
-	' oAsmCompDef = ThisApplication.ActiveDocument.ComponentDefinition
+	Dim oAsmCompDef As AssemblyComponentDefinition
+	oAsmCompDef = ThisApplication.ActiveDocument.ComponentDefinition
 
-	' ' Get the model browser
+	' Get the model browser
 
-	' Dim oPane As BrowserPane
-	' oPane = oDoc.BrowserPanes.Item("Model")
+	Dim oPane As BrowserPane
+	oPane = oDoc.BrowserPanes.Item("Model")
 
-	' ' Grab the occurrence of the object
-		' Dim oOcc As ComponentOccurrence
-		' For i = 1 to oDoc.ComponentDefinition.Occurrences.Count
-			 ' oOcc = oDoc.ComponentDefinition.Occurrences.Item(i)
-			' 'Grab Document from Occurrence    
+	' Grab the occurrence of the object
+		Dim oOcc As ComponentOccurrence
+		For i = 1 to oDoc.ComponentDefinition.Occurrences.Count
+			 oOcc = oDoc.ComponentDefinition.Occurrences.Item(i)
+			'Grab Document from Occurrence    
 
-			' Dim oOccDoc As Document
-			' oOccDoc = oOcc.Definition.Document
+			Dim oOccDoc As Document
+			oOccDoc = oOcc.Definition.Document
 			
-			' 'get design properties set'    
+			'get design properties set'    
 
-			' Dim invDesignInfo As PropertySet
-			' invDesignInfo = oOccDoc.PropertySets.Item("Design Tracking Properties")
+			Dim invDesignInfo As PropertySet
+			invDesignInfo = oOccDoc.PropertySets.Item("Design Tracking Properties")
 			
-			' ' Get the part number property.
+			' Get the part number property.
 
-			' Dim invPartNumberProperty As Inventor.Property
-			' invPartNumberProperty = invDesignInfo.Item("Part Number")
-			' invDescProperty = invDesignInfo.Item("Description")
+			Dim invPartNumberProperty As Inventor.Property
+			invPartNumberProperty = invDesignInfo.Item("Part Number")
 
-			' ' Get the browser node that corresponds to the new item
+			' Get the browser node that corresponds to the new item
 
-			' Dim oSubAssyNode As BrowserNode
-			' oSubAssyNode = oPane.GetBrowserNodeFromObject(oOcc)
+			Dim oSubAssyNode As BrowserNode
+			oSubAssyNode = oPane.GetBrowserNodeFromObject(oOcc)
 
-			' If oSubAssyNode.NativeObject.Name <> invPartNumberProperty.Value Then
-				' 'Set The name        
-				' oSubAssyNode.NativeObject.Name = (invPartNumberProperty.Value & "-" & invDescProperty.Value & ":" & i)
-			' End If
+			If oSubAssyNode.NativeObject.Name <> invPartNumberProperty.Value Then
+				'Set The name        
+				oSubAssyNode.NativeObject.Name = (invPartNumberProperty.Value & ":" & i)
+			End If
 
-		' Next
-		
-	Dim oVaultPane as BrowserPane = oDoc.BrowserPanes.Item("Vault")
-	oVaultPane.Activate
-	'oVaultPane.Refresh
-	'Dim oVBPFolder as BrowserNode = oVaultPane.BrowserNodesEnumerator.Item("3rd Party")
-	'oVBPFolder.Expanded = True
-	Dim oTopNode As BrowserNode = oVaultPane.TopNode
-	For Each Node as BrowserNode In oTopNode.BrowserNodes
-		Try
-            name = Node.NativeObject.Name
-        Catch ex As Exception
-            'name = browserNode.FullPath
-			MsgBox(Node.FullPath)
-        End Try
-		
-	Next
-	'oTopNode.DoSelect
-	
-	'.BrowserFolders.Item(1).BrowserNodes.Item("204120.stp")
+		Next
 End Sub
-
-
-
-
-' Class TraverseBrowserPaneRule
-    ' Const printedTreeFfn As String = "c:\temp\modelBrowser.txt"
-    
-    ' Sub Main()
-        ' Dim modelBrowserPane As BrowserPane = ThisApplication.ActiveEditDocument.BrowserPanes.Item("AmBrowserArrangement")
-        ' Dim topNode As BrowserNode = modelBrowserPane.TopNode
-
-        ' Using sw As IO.StreamWriter = IO.File.CreateText(printedTreeFfn)
-            ' sw.WriteLine(ThisApplication.ActiveEditDocument.DisplayName )
-        ' End Using
-        
-        ' PrintModelNodeNameRec(topNode, 0)
-    ' End Sub
-    
-    ' Sub PrintModelNodeNameRec(browserNode As BrowserNode, level As Integer) 
-        ' Dim name As String
-        ' If browserNode.NativeObject IsNot Nothing AndAlso browserNode.NativeObject.Type <> ObjectTypeEnum.kBrowserFolderObject  _
-        ' AndAlso browserNode.NativeObject.Type <> ObjectTypeEnum.kComponentOccurrenceObject _
-        ' AndAlso browserNode.NativeObject.Type <> ObjectTypeEnum.kComponentOccurrenceProxyObject _
-        ' AndAlso browserNode.NativeObject.Type <> ObjectTypeEnum.kAssemblyComponentDefinitionObject Then
-            ' Return
-        ' End If
-        ' Try
-            ' name = browserNode.NativeObject.Name
-        ' Catch ex As Exception
-            ' 'name = browserNode.FullPath
-        ' End Try
-        
-        ' If Not String.IsNullOrEmpty(name) Then
-            ' Using sw As IO.StreamWriter = IO.File.AppendText(printedTreeFfn)
-                ' sw.WriteLine(Space(level*2) + name)
-            ' End Using
-        ' End If
-
-        ' For Each node As BrowserNode In browserNode.BrowserNodes
-            ' PrintModelNodeNameRec(node, level + 1)
-        ' Next
-    
-        ' Return 
-    ' End Sub
-
-' End Class
