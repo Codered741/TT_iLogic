@@ -19,12 +19,33 @@ Sub Main()
 		iProperties.Value("Custom", "DETAILER") = ThisApplication.UserName
 		iProperties.Value("Project", "Creation Date") = DateString
 		
-		Dim uScale As Boolean = True
+		Dim uTemp as String
+		Dim Template as String
+		Dim TemplateList as New List(of String)
 		
+		
+		'Prompt user to select template
+		uTemp = InputListBox("Please select the template you would like to use: ", TemplateList, TemplateList(0), Title:= "Select Template", ListName := "Available Templates")
+		
+		'Cancel on user command
+		If uTemp = vbCancel Then
+			Exit Sub
+		End If
+		
+		'select template based on user input - ADD TEMPLATES HERE!!!!!!
+		Select Case uTemp
+			Case  TemplateList(0)
+				Template = "C:\_vaultWIP\Designs\Templates\TT_Part.dwg"
+			Case TemplateList(1)
+				Template = "C:\_vaultWIP\Designs\Templates\Disney\HKDL CSS Part Template.dwg"
+		End Select
+
+		'prompt user to auto scale
+		Dim uScale As Boolean = True
 		uScale = InputRadioBox("Auto Scale?", "Yes", "No", uScale, Title := "Scale")
 			
 		'Set the View Scales
-		Dim DrawingViewScale As Double 
+		Dim DrawingViewScale As Double
 		
 		If uScale = True Then
 			DrawingViewScale = 4/iProperties.Value("Custom", "LENGTH")
@@ -35,7 +56,7 @@ Sub Main()
 		Dim ModelDocName As String 
 		ModelDocName = ThisDoc.FileName(False) 'without extension
 		
-		ModelDwgDoc = CreateDrawing_PlaceViews(ModelDocName, DrawingViewScale, "Top_Right_Project", oBaseView, oRightSideView, oProjectView, oView4)
+		ModelDwgDoc = CreateDrawing_PlaceViews(ModelDocName, DrawingViewScale, Template, "Top_Right_Project", oBaseView, oRightSideView, oProjectView, oView4)
 		Dim oBW as Double
 		Dim oBH As Double
 		oBW = oBaseView.Width
@@ -75,7 +96,7 @@ Sub Main()
 
 End Sub
 
-Function CreateDrawing_PlaceViews (PartNumber As String, DrawingViewScale As Double, ViewsToPlace As String, ByRef oBaseView As DrawingView, ByRef oView2 As DrawingView, ByRef oView3 As DrawingView, ByRef oView4 As DrawingView)
+Function CreateDrawing_PlaceViews (PartNumber As String, DrawingViewScale As Double, TemplatePath as String, ViewsToPlace As String, ByRef oBaseView As DrawingView, ByRef oView2 As DrawingView, ByRef oView3 As DrawingView, ByRef oView4 As DrawingView)
 
 	Dim oDrawDoc As DrawingDocument
 	Dim oPartDoc As Document
@@ -86,7 +107,7 @@ Function CreateDrawing_PlaceViews (PartNumber As String, DrawingViewScale As Dou
 	Dim oPoint3 As Point2d
 	
 	oPartDoc = ThisDoc.Document
-	oDrawDoc = ThisApplication.Documents.Add(kDrawingDocumentObject, "C:\_vaultWIP\Designs\Templates\TT_Part.dwg", True)
+	oDrawDoc = ThisApplication.Documents.Add(kDrawingDocumentObject, TemplatePath, True)
 
 	
 	oSheet = oDrawDoc.Sheets.Item(1)
