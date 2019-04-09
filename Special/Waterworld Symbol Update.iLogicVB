@@ -1,0 +1,33 @@
+Sub Main()
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	
+	If Not oDoc.DocumentType = kDrawingDocumentType Then
+		MsgBox("Please run from a drawing")
+		Exit Sub
+	End If
+	
+	Dim oTemplate as String = ""
+	Dim SymbolName as String = ""
+	
+	Dim oCtrlDef as ControlDefinitions = ThisApplication.CommandManager.ControlDefinitions
+	oCtrlDef.Item("VaultCheckoutTop").Execute
+	
+	Dim oOptions as NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+		oOptions.Value("DeferUpdates") = True
+		oOptions.Value("FastOpen") = True
+		
+	'open the template
+	oSourceDoc = ThisApplication.Documents.OpenWithOptions(oTemplate, oOptions, False)
+	
+	SymbolCopy(oSourceDoc, oDoc, SymbolName)
+	
+	oSourceDoc.Close(False)
+	
+	oDoc.Save
+	
+End Sub
+
+Sub SymbolCopy(SourceDoc As Document, DestDoc as Document, SymbolName as String)
+	Dim oSourceSymbolDef as SketchedSymbolDefinition = SourceDoc.SketchedSymbolDefinitions.Item(SymbolName)
+	Dim oNewBorderDef as SketchedSymbolDefinition = oSourceSymbolDef.CopyTo(DestDoc, True) 
+End Sub

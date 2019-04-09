@@ -1,0 +1,236 @@
+Imports System.Collections.Generic
+'code taken and modified from:
+'http://adndevblog.typepad.com/manufacturing/2015/01/add-external-ilogic-rule-to-event-trigger.html
+
+Sub Main
+
+	Dim oTemplateDoc As Document
+	Dim oTemplate As String = "C:\_vaultWIP\Designs\Templates\Disney\HKDL CSS Template.dwg"  'file to copy events from
+	Dim oDoc as Document = ThisApplication.ActiveDocument
+	Dim oModelDoc as Document' = oDoc.AllReferencedDocuments.Item(1)
+	Dim Border1Name as String = "HKDL Border"
+	Dim TB1Name as String = "HKDL CSS TB"
+	Dim EngrApprBy As String = ""
+	
+	Try
+		oModelDoc = oDoc.AllReferencedDocuments.Item(1)
+	Catch 
+		MessageBox.Show("There are no models referenced in this drawing.  The Rule cannot continue.  ", "No Model", MessageBoxButtons.OK, MessageBoxIcon.Error)
+		Exit Sub
+	End Try
+	
+	'If the first reference is not a part or assembly, find the first assembly/part in the list.  
+	If oModelDoc.DocumentType <> kAssemblyDocumentObject OrElse oModelDoc.DocumentType <> kPartDocumentObject 
+		For docnum = 1 to oDoc.AllReferencedDocuments.Count ' oModelDoc.DocumentType <> kAssemblyDocumentObject OrElse oModelDoc.DocumentType <> kPartDocumentObject
+			oModelDoc = oDoc.AllReferencedDocuments.Item(docnum)
+			ModelFileName = Right(oModelDoc.FullFileName, oModelDoc.FullFileName.Length - InStrRev(oModelDoc.FullFileName, "\"))
+			'msgbox(ModelFileName)
+			If ModelFileName.Contains(oDoc.PropertySets.Item("Design Tracking Properties").Item("Part Number").Value) AndAlso oModelDoc.DocumentType <> kPresentationDocumentObject Then  'DocumentType = kAssemblyDocumentObject OrElse oModelDoc.DocumentType = kPartDocumentObject
+				'MsgBox(oModelDoc.FullFileName)
+				Exit For
+			End If
+		Next
+	End If
+	
+	If oModelDoc.DocumentType = kPartDocumentObject Then
+			oModelDoc.PropertySets.Item("Design Tracking Properties").Item("Project").Value = ""
+	End If
+		
+	Dim oCtrlDef as ControlDefinitions = ThisApplication.CommandManager.ControlDefinitions
+	oCtrlDef.Item("VaultCheckoutTop").Execute
+	oCtrlDef.Item("UpdateCopiedModeliPropertiesCmd").Execute
+	oCtrlDef.Item("UpdateStylesCmd").Execute
+	
+	SharedVariable("LogVar") = "HKDL Replace TB - TEST"
+	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	
+	'check file type 
+	If oDoc.DocumentType = kDrawingDocumentObject Then
+		'do nothing and continue
+	'ElseIf oDoc.DocumentType = kPartDocumentObject Then
+		'oTemplate = "\\server\departments\CAD\Inventor\Templates\Standard.ipt"   'file to copy events from
+	Else
+		'oTemplate = "\\server\departments\CAD\Inventor\Templates\Standard.iam"   'file to copy events from
+		MsgBox("Must run from drawing")
+		Exit Sub
+	End If
+	
+	Dim oOptions as NameValueMap = ThisApplication.TransientObjects.CreateNameValueMap
+		oOptions.Value("DeferUpdates") = True
+		oOptions.Value("FastOpen") = True
+		
+	'open the template
+	oTemplateDoc = ThisApplication.Documents.OpenWithOptions(oTemplate, oOptions, False)
+	
+	'Copy resources from template
+	TitleBlockCopy(oTemplateDoc, oDoc, TB1Name)
+	
+	BorderCopy(oTemplateDoc, oDoc, Border1Name)
+	
+	SymbolCopy(oTemplateDoc, oDoc, "Univ. Part Notes")
+	SymbolCopy(oTemplateDoc, oDoc, "TubeWeldTyp")
+	
+	Dim IsKit = vbNo
+	IsKit = MessageBox.Show("Is this a kit?","Kit?", MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+	' Try 
+		' If oModelDoc.PropertySets.Item("Inventor User Defined Properties").Item("DesignLevel") = "Kit" _
+		 ' OrElse oModelDoc.PropertySets.Item("Inventor User Defined Properties").Item("DesignLevel") = "Element" Then
+			' IsKit = MessageBox.Show("Is this a kit?","Kit?", MessageBoxButtons.YesNo,MessageBoxIcon.Question)
+		' End If 
+	' Catch
+	' End Try
+	
+	Dim oSheets As Sheets = oDoc.Sheets
+	Dim oSheet1 as Sheet = oDoc.Sheets.Item(1)
+	Dim SheetCount = 1
+	
+	'if a kit, copy the general notes page, delete the current, and move the newly copied sheet to sheet 2
+	If IsKit = vbYes Then
+		Dim CopiedPg2 as Sheet = oTemplateDoc.Sheets.Item(2).CopyTo(oDoc) 'copy template page 2 to current drawing
+		dim CopiedPg3 as Sheet = oTemplateDoc.Sheets.Item(3).CopyTo(oDoc) 'copy template page 3 to current drawing
+		
+		oSheets.Item(2).Delete 'delete current page 2
+		oSheets.Item(2).Delete 'delete current page 3
+		
+		Dim oBrowserPane as BrowserPane = oDoc.BrowserPanes.Item("Model") 'Get the model browser pane
+		
+		Dim sheetNodePg2 As BrowserNode = oBrowserPane.GetBrowserNodeFromObject(CopiedPg2) 'Get the browser node relating to the new Page 2
+		Dim sheetNodePg3 As BrowserNode = oBrowserPane.GetBrowserNodeFromObject(CopiedPg3) 'Get the browser node relating to the new Page 3
+		
+		oBrowserPane.Reorder(oBrowserPane.GetBrowserNodeFromObject(oSheet1), False, sheetNodePg2) 'move the new page 2
+		oBrowserPane.Reorder(oBrowserPane.GetBrowserNodeFromObject(CopiedPg2), False, sheetNodePg3) 'move the new page 2
+		
+		Dim syncRuleText As String = "ThisApplication.CommandManager.ControlDefinitions.Item(""UpdateCopiedModeliPropertiesCmd"").Execute2(True)"
+		InjectLocalRule(oDoc, "AutoPropSync", syncRuleText, True)
+		
+	End If
+	
+	oTemplateDoc.Close(True)
+	
+	oSheet1.Activate
+	
+	Dim oBorderDef as BorderDefinition = oDoc.BorderDefinitions.Item(Border1Name)
+	Dim oTB1Def as TitleBlockDefinition = oDoc.TitleBlockDefinitions.Item(TB1Name)
+	
+	oSheet1.Border.Delete
+	oSheet1.TitleBlock.Delete
+	oSheet1.AddBorder(oBorderDef)
+	oSheet1.AddTitleBlock(oTB1Def)
+
+	If oDoc.AllReferencedDocuments.Item(1).DocumentType = kPartDocumentObject Then	
+		InsertSketchedSymbolOnSheet(oDoc, "Univ. Part Notes")
+	End If
+	
+	If oSheets.Count > 1 Then
+		
+		For Each oSheet In oSheets
+			If SheetCount < oSheets.Count Then
+				
+				SheetCount = SheetCount + 1
+				oSheet = oDoc.Sheets.Item(SheetCount)
+				oSheet.Activate
+				oSheet.Border.Delete
+				oSheet.AddBorder(oBorderDef)
+				oSheet.TitleBlock.Delete
+				oSheet.AddTitleBlock(oTB1Def)
+				
+			End If
+		Next
+	End If
+	
+	' PropAdd(oDoc, "NextAssy", "")
+	' PropAdd(oDoc, "UsedOn", "")
+	' PropAdd(oModelDoc, "NextAssy", "")
+	' PropAdd(oModelDoc, "UsedOn", "")
+	oDoc.PropertySets.Item("Design Tracking Properties").Item("Engr Approved By").Value =  EngrApprBy
+	oModelDoc.PropertySets.Item("Design Tracking Properties").Item("Engr Approved By").Value = EngrApprBy
+	
+	oDoc.Sheets.Item(1).Activate 'goto page 1
+	
+	Try
+		oDoc.Save
+	Catch 
+	End Try
+	
+End Sub 'Main
+
+
+Sub PropAdd(doc as Document, PropName as String, InitVal as String)
+	Dim CustPropSet as PropertySet = doc.PropertySets.Item("Inventor User Defined Properties")
+	Try
+		prop = CustPropSet.Item(PropName)
+	Catch
+		CustPropSet.Add("", PropName)
+	End Try
+End Sub
+
+Sub TitleBlockCopy(SourceDoc as Document, DestDoc as Document, tbName as String)
+	' Get the new source title block definition.
+
+	Dim oSourceTitleBlockDef As TitleBlockDefinition = SourceDoc.TitleBlockDefinitions.Item(tbName)
+
+	' Get the new title block definition.
+	Dim oNewTitleBlockDef As TitleBlockDefinition = oSourceTitleBlockDef.CopyTo(DestDoc, True)
+End Sub
+
+Sub BorderCopy(SourceDoc As Document, DestDoc as Document, BorderName as String)
+	Dim oSourceBorderDef as BorderDefinition = SourceDoc.BorderDefinitions.Item(BorderName)
+	Dim oNewBorderDef as BorderDefinition = oSourceBorderDef.CopyTo(DestDoc, True)
+End Sub
+
+Sub SymbolCopy(SourceDoc As Document, DestDoc as Document, SymbolName as String)
+	Dim oSourceSymbolDef as SketchedSymbolDefinition = SourceDoc.SketchedSymbolDefinitions.Item(SymbolName)
+	Dim oNewBorderDef as SketchedSymbolDefinition = oSourceSymbolDef.CopyTo(DestDoc, True) 
+End Sub
+
+
+Public Sub InsertSketchedSymbolOnSheet(oDrawDoc as Document, SymbolName as String)
+
+    Dim oSketchedSymbolDef As SketchedSymbolDefinition = oDrawDoc.SketchedSymbolDefinitions.Item(SymbolName)
+
+    Dim oSheet As Sheet = oDrawDoc.Sheets.Item(1)
+
+    Dim oTG As TransientGeometry = ThisApplication.TransientGeometry
+	Dim oPoint As Point2d = oTG.CreatePoint2d(0.9652, 26.9748)
+
+    Dim oSketchedSymbol As SketchedSymbol = oSheet.SketchedSymbols.Add(oSketchedSymbolDef, oPoint, 0, 1)
+End Sub
+
+Sub InjectLocalRule(Doc as Document, RuleName as String, RuleText as String, Optional Overwrite As Boolean = True)
+    
+	Dim iLogicAuto As Object = GetiLogicAddin(ThisApplication)
+	
+    If (iLogicAuto Is Nothing) Then 
+		MsgBox("Could not get iLogic Addin") 
+		Exit Sub
+	End If
+	
+	Try 
+		tryrule = iLogicAuto.GetRule(Doc, RuleName).Name
+	Catch
+		iLogicAuto.AddRule(Doc, RuleName, RuleText)
+	Finally 
+		If Overwrite = True Then
+			iLogicAuto.GetRule(Doc, RuleName).Text = RuleText
+		End If
+	End Try
+	
+End Sub 'InjectLocalRule
+
+
+Function GetiLogicAddin(oApplication As Inventor.Application) As Object
+	Dim addins As Object
+	addins = oApplication.ApplicationAddIns
+
+	'Find the add-in you are looking for
+	Dim addIn As ApplicationAddIn
+	On Error GoTo NotFound
+	addIn = oApplication.ApplicationAddIns.ItemById("{3bdd8d79-2179-4b11-8a5a-257b1c0263ac}")
+
+	If (addIn Is Nothing) Then Exit Function
+
+	addIn.Activate
+	GetiLogicAddin = addIn.Automation
+	Exit Function
+	NotFound:
+End Function 'GetiLogicAddin
