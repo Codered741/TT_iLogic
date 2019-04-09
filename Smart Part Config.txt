@@ -23,6 +23,10 @@ Sub Main()
 		'kInventorDesktopAccess = 81153
 		'kVaultOrProductstreamServerAccess = 81154
 	ThisApplication.ContentCenterOptions.CustomFamilyAsStandard() = True
+	
+	'Enforce an Isometric view for thumbnails
+	' this is default for most parts, but specifically added for Frame Generator tubes, as content center parts generally have an image of the profile
+	oDoc.SetThumbnailSaveOption(79874) 'ThumbnailSaveOptionEnum.kActiveComponentIsoViewOnSave
 
 	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
 	DesignPropertySet = oDoc.PropertySets.Item("Design Tracking Properties")
@@ -140,18 +144,23 @@ Sub Main()
 	'Check if File Name and Part Number Match
 	If pPN.Value <> DocumentFileName(oDoc) Then
 		answer = MessageBox.Show("The Part Number and File Name of the current file do not match.  " & vbLf & _
-			"For best results, please rename the file in Vault or correct the part number.  ", "File\Part Number Mismatch", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
+			"For best results, please correct the part number.  "& vbLf & _
+			"Would you like to change the part number to match the current file name, " & DocumentFileName(oDoc) & " ?", "File\Part Number Mismatch", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning)
 			MsgComp = MsgComp & "ERROR File\Part Number Mismatch|"
 		If answer = vbCancel Then
 			Exit Sub
+		Else If answer = vbYes Then
+			pPN.Value = DocumentFileName(oDoc)
+		Else
+			MessageBox.Show("Please rename the file in Vault so the part number and file name match.  ", "File\Part Number Mismatch", MessageBoxButtons.OK, MessageBoxIcon.Warning)
 		End If
 		
 	End If
 
 		'Check Part Number Length
 	If Len(pPN.Value) > 50 Then
-		MessageBox.Show("The entered part number is longer than 50 characters, and will be truncated in Epicor.  " & vbLf & _
-			"Please ensure that the part description in not included in the Part Number field.  Please correct and re-run config.  ", "Part Number Length",MessageBoxButtons.OK, MessageBoxIcon.Error)
+		MessageBox.Show("The entered part number is longer than 50 characters, and cannot be entered in Epicor.  " & vbLf & _
+			"Please ensure that the part description in not included in the Part Number field.  Please correct and re-run config.  ", "Smart Part Config",MessageBoxButtons.OK, MessageBoxIcon.Error)
 		If noWrite = False
 			oAppend.Write("Part Number Length Error")
 			oAppend.Flush()
@@ -160,6 +169,16 @@ Sub Main()
 		Exit Sub
 	End If
 	
+	If Len(pMatNum.Value) > 50 Then
+		MessageBox.Show("The entered Material Number is longer than 50 characters, and cannot be entered in Epicor.  " & vbLf & _
+			"Please correct and re-run config.  ", "Smart Part Config",MessageBoxButtons.OK, MessageBoxIcon.Error)
+		If noWrite = False
+			oAppend.Write("Material Number Length Error")
+			oAppend.Flush()
+			oAppend.Close()
+		End If
+		Exit Sub
+	End If
 	'///////////////////////////////////////////////////////
 	'Begin configuration
 	
@@ -179,6 +198,8 @@ Sub Main()
 			pDetailer.Value = ThisApplication.UserName
 		End If
 	End If
+	
+	
 	
 	'Configure tapped hole modeling parameters
 	oDoc.ModelingSettings.TappedHoleDiameter = 21764 'Tap Drill
@@ -294,14 +315,10 @@ Sub Main()
 	
 	'measure bounding box, flat pattern for sheet metal parts.  
 	If oDoc.SubType = "{9C464203-9BAE-11D3-8BAD-0060B0CE6BB4}" Then ' Determine if part is Sheet Metal
-		Try
-			'Measure part and write to parameters, if sheet metal
-			Parameter("XDIM") = SheetMetal.FlatExtentsLength
-			Parameter("YDIM") = SheetMetal.FlatExtentsWidth
-			Parameter("ZDIM") = Parameter("Thickness")
-		Catch 
-			MessageBox.Show("An Error occurred while measuring the extents of the flat pattern.  Please make sure the flat pattern is valid.  ", "Smart Part Config Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-		End Try
+		'Measure part and write to parameters, if sheet metal
+		Parameter("XDIM") = SheetMetal.FlatExtentsLength
+		Parameter("YDIM") = SheetMetal.FlatExtentsWidth
+		Parameter("ZDIM") = Parameter("Thickness")
 	Else
 		'Measure part and write to parameters, if standard
 		Parameter("XDIM") = Measure.ExtentsLength
@@ -347,10 +364,11 @@ Sub Main()
 			pLength.Value & "," & pWidth.Value & "," & pThick.Value & "," & pMatNum.Value.Replace(",", "_") & "," & _
 			pMatDesc.Value.Replace(",", "_") & "," & Parameter("OP1") & "," & Parameter("OP2") & "," & Parameter("OP3") & "," & _
 			Parameter("OP4") & "," & MsgComp)
+			
+		oAppend.Flush()
+		oAppend.Close()
 	End If
-
-	oAppend.Flush()
-	oAppend.Close()
+	
 	
 End Sub 
 
