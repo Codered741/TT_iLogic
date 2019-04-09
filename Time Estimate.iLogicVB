@@ -213,10 +213,16 @@ End Function
 Function EdgeCounts(oPartDoc as PartDocument) As Integer 'Returns the number of edges in the current model
 
 	Dim oCompDef As ComponentDefinition = oPartDoc.ComponentDefinition
-	Dim oSurfaceBodies As SurfaceBodies = oCompDef.SurfaceBodies
-	Dim oSurfaceBody As SurfaceBody = oSurfaceBodies(1)
-	Return oSurfaceBody.Edges.Count
-	
+	Dim oSurfaceBodies As SurfaceBodies
+	Dim oSurfaceBody As SurfaceBody
+	Try 
+		oSurfaceBodies = oCompDef.SurfaceBodies
+		oSurfaceBody = oSurfaceBodies(1)
+		Return oSurfaceBody.Edges.Count
+	Catch 
+		Return 0
+	End Try
+		
 End Function
 
 Function MaterialRemoved(Doc as Document, XDIM As Double, YDIM As Double, ZDIM As Double) As Double 'Returns Difference between the part bounding box and the part volume
@@ -244,69 +250,25 @@ End Function
 Function GetHolesQty(ByVal oDef As PartComponentDefinition) As Integer
 
 	Dim oSurfaceBodies as SurfaceBodies = oDef.SurfaceBodies
-	Dim oSurfaceBody As SurfaceBody = oSurfaceBodies.Item(1)
-	Dim oFaces as Faces = oSurfaceBody.Faces
-	Dim oFace As Face
-	Dim i As Integer = 0
 
-	For Each oFace In oFaces
-		If oFace.SurfaceType = SurfaceTypeEnum.kCylinderSurface Then
-			i = i+1
-		End If
-	Next
+	
+	Try 
+		Dim oSurfaceBody As SurfaceBody = oSurfaceBodies.Item(1)
+		Dim oFaces as Faces = oSurfaceBody.Faces
+		Dim oFace As Face
+		Dim i As Integer = 0
 
-	Return i
-	' Dim N As Integer = 0 'counter
-	' Dim oHoles As HoleFeatures = oDef.Features.HoleFeatures
+		For Each oFace In oFaces
+			If oFace.SurfaceType = SurfaceTypeEnum.kCylinderSurface Then
+				i = i+1
+			End If
+		Next
+
+		Return i
+	Catch 
+		Return 0
+	End Try	
 	
-	' For Each oH As HoleFeature In oHoles
-		' If Not oH.Suppressed Then
-			' N += oH.HoleCenterPoints.Count
-		' End If
-	' Next
-	
-	' 'have we any rectangular patterns ?
-	' Dim oRectPatterns As RectangularPatternFeatures
-	' oRectPatterns = oDef.Features.RectangularPatternFeatures
-	
-	' For Each oRPF As RectangularPatternFeature In oRectPatterns
-		' Dim m As Integer = 0
-		' If Not oRPF.Suppressed Then
-			' If (TypeOf oRPF.ParentFeatures.Item(1) Is HoleFeature) Then
-				' Dim oH As HoleFeature = oRPF.ParentFeatures.Item(1)
-				' If Not oH.Suppressed Then
-					' For Each oFPE As FeaturePatternElement In oRPF.PatternElements
-						' If Not oFPE.Suppressed Then m += 1
-					' Next
-				' End If
-			' End If
-			' N += m - 1
-		' Else
-			' N += m
-		' End If
-	' Next
-	
-	' 'have we any circular patterns ?
-	' Dim oCircPatterns As CircularPatternFeatures
-	' oCircPatterns = oDef.Features.CircularPatternFeatures
-	
-	' For Each oCPF As CircularPatternFeature In oCircPatterns
-		' Dim m As Integer = 0
-		' If Not oCPF.Suppressed Then
-			' If (TypeOf oCPF.ParentFeatures.Item(1) Is HoleFeature) Then
-				' Dim oH As HoleFeature = oCPF.ParentFeatures.Item(1)
-				' If Not oH.Suppressed Then
-					' For Each oFPE As FeaturePatternElement In oCPF.PatternElements
-						' If Not oFPE.Suppressed Then m += 1
-					' Next
-				' End If
-			' End If
-			' N += m - 1
-		' Else
-			' N += m
-		' End If
-	' Next
-	' Return N
 End Function
 
 Function GetHolesTapQty(ByVal oDef As PartComponentDefinition) As Integer
