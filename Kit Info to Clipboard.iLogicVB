@@ -80,15 +80,20 @@ Sub Main()
 	PriorityAns = InputListBox("Select Priority", PriorityList, PriorityList(1), "Kit Info Emoji Helper", "Priority")
 	
 	Select Case PriorityAns
-		Case PriorityList(1)
+		Case PriorityList(0)
+			'msgbox("0")
 			Emoji = ":red_circle:" & vbLf
-		Case PriorityList(2)
-			Emoji = ":black_circle:" & vbLf
-		Case PriorityList(3)
-			Emoji = ":large_blue_circle:" & vbLf
-		Case PriorityList(4)
-			Emoji = ":white_circle:" & vbLf
 		Case PriorityList(1)
+			'msgbox("1")
+			Emoji = ":black_circle:" & vbLf
+		Case PriorityList(2)
+			'msgbox("2")
+			Emoji = ":large_blue_circle:" & vbLf
+		Case PriorityList(3)
+			'msgbox("3")
+			Emoji = ":white_circle:" & vbLf
+		Case PriorityList(4)
+			'msgbox("4")
 			Emoji = ":black_circle_for_record:" & vbLf
 	End Select
 	
