@@ -219,8 +219,10 @@ End Sub
 Sub ParamAdd(Params As List(Of String), UnitType As String, GroupName as String)
 	'Init
 	Dim oPartDoc As Document = ThisApplication.ActiveEditDocument
+	
+	'If oPartDoc.DocumentType = kAssemblyDocumentObject Then
 	Dim oCompDef As ComponentDefinition = oPartDoc.ComponentDefinition
-	oMyParameter = oCompDef.Parameters.UserParameters
+	Dim oMyParameter as UserParameters = oCompDef.Parameters.UserParameters
 	' Dim ParamGroup as CustomParameterGroup
 	
 	' Try
