@@ -104,6 +104,8 @@ Sub Main()
 
 		MergePrintDwgs(oDoc.FullFileName, lstDrawings)
 		
+		CopyPostInfo(oDoc)
+		
 	Catch Ex as Exception
 	
 		MsgBox("Main error: " & Ex.Message)
@@ -115,6 +117,16 @@ Sub Main()
 	End Try
 	
 End Sub 'Main
+
+
+Sub CopyPostInfo(doc as Document)
+	Dim FinalText as String 
+	Dim desPropSet as PropertySet = Doc.PropertySets.Item("Design Tracking Properties")
+	FinalText = "Job Number: " & DesPropSet.Item("Part Number").Value & vbLf & _
+					"Kit Name: " & DesPropSet.Item("Description").Value & vbLf & _
+					"Project Name: " & DesPropSet.Item("Project").Value
+	My.Computer.Clipboard.SetText(FinalText)
+End Sub 'CopyPostInfo
 
 Private Sub MergePrintDwgs(strFilePath as String, lstDwgsPrint as List(of String))
 	
@@ -185,8 +197,8 @@ Private Sub MergePrintDwgs(strFilePath as String, lstDwgsPrint as List(of String
 		oProgressBar.Close
 		
 	End Try
-	
-	ThisDoc.Launch(fullPath & ".pdf")
+	Process.Start("explorer.exe", "/select," & fullPath & ".pdf")
+	'ThisDoc.Launch(fullPath & ".pdf")
 	
 End Sub
 
@@ -238,6 +250,10 @@ Sub GetBOMRowDocFile(oRow as BOMRow, ByRef BOMDocs as List(of String))
 	End If
 		
 	If Not oRow.ChildRows Is Nothing Then
+	
+		If Not BOMDocs.Contains(DocName) Then
+			BOMDocs.Add(DocName)
+		End If
 	
 		For Each oChildRow as BOMRow in oRow.ChildRows		
 			GetBOMRowDocFile(oChildRow, BOMDocs)
@@ -301,6 +317,9 @@ Private Sub DwgPrint(PrinterName as String)
 	' Set the paper size.
 	oPrintMgr.PaperSize = 14338
 		'14338 'kPaperSize11x17
+		
+	'oPrintMgr.PaperWidth = 431.8
+	'oPrintMgr.PaperHeight = 27.94
 	
 	' Set to print all sheets.
 	oPrintMgr.PrintRange = 14082 'kPrintAllSheets
