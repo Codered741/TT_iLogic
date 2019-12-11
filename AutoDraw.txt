@@ -22,15 +22,19 @@ Sub Main()
 		Dim uTemp as String
 		Dim Template as String
 		Dim TemplateList as New List(of String)
-		
+		TemplateList.Add("TAIT")
+		TemplateList.Add("HKDL CSS")
+		TemplateList.Add("Universal SM Japan")
+		TemplateList.Add("Universal SM Hollywood")
+		TemplateList.Add("Universal SM Florida")
 		
 		'Prompt user to select template
 		uTemp = InputListBox("Please select the template you would like to use: ", TemplateList, TemplateList(0), Title:= "Select Template", ListName := "Available Templates")
 		
 		'Cancel on user command
-		If uTemp = vbCancel Then
-			Exit Sub
-		End If
+		' If uTemp = vbCancel Then
+			' Exit Sub
+		' End If
 		
 		'select template based on user input - ADD TEMPLATES HERE!!!!!!
 		Select Case uTemp
@@ -38,6 +42,12 @@ Sub Main()
 				Template = "C:\_vaultWIP\Designs\Templates\TT_Part.dwg"
 			Case TemplateList(1)
 				Template = "C:\_vaultWIP\Designs\Templates\Disney\HKDL CSS Part Template.dwg"
+			Case TemplateList(2)
+				Template = "C:\_vaultWIP\Designs\Templates\Universal\US_JAPAN\_USJ_STANDARD TEMPLATE_SIZE B_11x17.dwg"
+			Case TemplateList(3)
+				Template = "C:\_vaultWIP\Designs\Templates\Universal\US_HOLLYWOOD\_USH_STANDARD TEMPLATE_SIZE B_11x17.dwg"
+			Case TemplateList(4)
+				Template = "C:\_vaultWIP\Designs\Templates\Universal\US_FLORIDA\_USF_STANDARD TEMPLATE_SIZE B_11x17.dwg"
 		End Select
 
 		'prompt user to auto scale
