@@ -5,6 +5,8 @@ Imports System.Text
 
 Sub Main()
 	
+	SharedVariable.RemoveAll()
+	
 	Dim usrLatestAck = MessageBox.Show("Please ensure that you have the latest drawings of this assembly.  "  _
 		& vbLf & "Contact #des_inventor for assistance.  ", "Latest Drawing Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
 		
