@@ -1,0 +1,51 @@
+iLogicVb.UpdateWhenDone = True
+
+Dim sizes As New List(Of Double)
+'Parameter("XDIM") = Measure.ExtentsLength
+'Parameter("YDIM") = Measure.ExtentsWidth
+'Parameter("ZDIM") = Measure.ExtentsHeight
+sizes.Add(Measure.ExtentsLength)
+sizes.Add(Measure.ExtentsWidth)
+sizes.Add(Measure.ExtentsHeight)
+sizes.Sort()
+
+lDim = sizes(2)
+wDim = sizes(1)
+
+If Parameter("PlyThick") <> 0.75 in AndAlso Parameter("StandardMtl") <> False Then
+	uMtl = MessageBox.Show("Jig is thicker/thinner than standard jigs.  No Material will be assigned.  Either make the jig 0.75in, or specify the correct material.  Do you want this jig to be something other than 0.75in plywood?", "Non-Standard Material", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+	If uMtl = vbYes Then
+		MessageBox.Show("Change the parameter 'StandardMtl' to True if you change your mind!  This reminder will not appear again.  ", "Non-Standard Material")
+		Parameter("StandardMtl") = False
+	End If
+	
+	iProperties.Value("Custom", "Material Number") = " "
+	iProperties.Value("Custom", "Material Description") = " "
+	
+Else 
+	If (lDim <= 96 AndAlso wDim <= 48) AndAlso iProperties.Value("Custom", "Material Number") <> "1006007" Then 'Stock is less than 4x8
+		iProperties.Value("Custom", "Material Number") = "1006007"
+		iProperties.Value("Custom", "Material Description") = "Plywood 3/4 inch x 48 inch x 96 inch Fin"
+		
+	Else If (lDim > 96 AndAlso lDim <= 120) AndAlso (wDim > 48 AndAlso wDim <= 60) AndAlso iProperties.Value("Custom", "Material Number") <> "1006009" Then 'Stock is larger than 4x8 and smaller than 5x10
+		iProperties.Value("Custom", "Material Number") = "1006009"
+		iProperties.Value("Custom", "Material Description") = "Plywood 3/4 inch x 60 inch x 120 inch Fin"
+		
+	Else If (lDim > 96 AndAlso lDim <= 120) AndAlso (wDim <= 48) AndAlso iProperties.Value("Custom", "Material Number") <> "1006014" Then 'stock is longer than 8' and less than 10', and narrower than 4'
+		iProperties.Value("Custom", "Material Number") = "1006014"
+		iProperties.Value("Custom", "Material Description") = "Plywood 3/4 inch x 48 inch x 120 inch Shop"
+
+	Else
+		If (lDim > 120 AndAlso wDim > 60) AndAlso Parameter("MBApproach") <> True Then
+			uMB = MessageBox.Show("Jig is larger than available Material.  No Material will be assigned.  Either make the jig smaller, or use a multi-body approach.  Are you going to use a multi-body approach?", "Multi-Body Approach", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+			If uMB = vbYes Then
+				MessageBox.Show("Change the parameter 'MBApproach' to FALSE if you change your mind!  This reminder will not appear again.  ","Multi-Body Approach")
+				Parameter("MBApproach") = True
+			End If
+			
+			iProperties.Value("Custom", "Material Number") = " "
+			iProperties.Value("Custom", "Material Description") = " "
+		End If
+			
+	End If
+End If
