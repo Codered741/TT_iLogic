@@ -1,5 +1,10 @@
+'TODO
+'Add Vault GET for current assembly
+'Add File version check.  (as reference to external rule)
+
 Imports System.IO
 Imports System.IO.File
+Imports System.Text
 'Imports System.IO.Path
 'Imports System.Collections
 'Imports My.Computer.FileSystem
@@ -12,22 +17,75 @@ AddReference "C:\Program Files\PDFCreator\PDFCreator.ComWrapper.dll"
 Imports pdfforge.PDFCreator.UI.ComWrapper
 
 Sub Main()
-
+'get user confirmation on items before starting
+'this will take a while
 	Dim usrTimeAck = MessageBox.Show("This rule will find all drawings of parts referenced in the BOM, print them to PDF's and merge them to a single document.  "  _
-		& vbLf & "This process can take some time to run, and cannot be stopped once started.  " _ 
-		& vbLf & "Please ensure you have PDFCreator installed before continuing.  ", "Time Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
+		& vbLf & "This process can take some time to run, and cannot be stopped once started.  ", "Time Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
 		
 	If usrTimeAck = vbCancel Then
 		Exit Sub
 	End If
 	
+'confirm getting latest drawings
+	Dim usrLatestAck = MessageBox.Show("Please ensure that you have the latest drawings of this assembly.  "  _
+		& vbLf & "Would you like to get the latest drawings from Vault? " _ 
+		& vbLf & "This can take some time with larger assemblies.  ", "Latest Drawing Warning", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning)
+		
+	If usrLatestAck = vbCancel Then	
+		Exit Sub
+	Else If usrLatestAck = vbYes Then
+		iLogicVB.RunExternalRule("Get Latest from Vault.iLogicVB")
+
+		'Error checking is not yet supported
+		' If SharedVariable("VaultGetFail") = True Then
+			' MessageBox.Show("There was an error getting files from Vault.  Please try again.  ", "Get latest from Vault Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			' Exit Sub
+		' End If
+
+	End If
+
+'confirm comparing the part and drawing versions to be ready for posting
+	Dim usrDwgCompareAck = MessageBox.Show("Would you like to check to see if the drawings are up to date?", "Drawing Version Check", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 	
+	If usrDwgCompareAck = vbYes Then
+		SharedVariable("BatchPlotInvoke") = True
+		iLogicVB.RunExternalRule("Check Drawing Update Status.iLogicVB")
+	End If
+	
+	Dim usrCompareContinueAck = MessageBox.Show("Do you wish to continue plotting drawings?", "Continue batch plot?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+	
+	If usrCompareContinueAck = vbNo Then 
+		MsgBox("Run the 'Check Drawing Update Status' rule to update any drawings that are out of date.  ")
+		Exit Sub
+	End If
+	
+'begin the Batch Plot process
 	Dim VaultAddin As Inventor.ApplicationAddIn = ThisApplication.ApplicationAddIns.ItemById("{48B682BC-42E6-4953-84C5-3D253B52E77B}")
 	VaultAddin.Deactivate()
+	
+	'create access to Batch Plot log
+	Dim oAppend As System.IO.StreamWriter
+	Dim oFile As String = "Z:\Inventor Data\BPLog - Copy.log"
+	Dim noWrite as Boolean = False
+	
+	'try getting access to log, disable CSV output if access cannot be gained.  
+	Try
+		oAppend = IO.File.AppendText(oFile)
+	Catch
+		noWrite = True
+		MsgBox("Attempting to write to local log.  ")
+		oFile = "C:\_vaultWIP\BPLog.log"
+		If Not My.Computer.FileSystem.FileExists(oFile) Then
+			System.IO.File.Create(oFile)
+		End If
+		
+		oAppend = IO.File.AppendText(oFile)
+		
+	End Try
 
 	Try 
 		Dim oDoc as Document = ThisApplication.ActiveDocument
-		Dim FileNameMinLong as Integer = 21
+		Dim FileNameMinLong as Integer = 21 'c:/_vaultWIP/Designs/ is 21 characters.  
 		
 		'check if active document is an assembly
 		If isAsm(oDoc) = False
@@ -38,18 +96,6 @@ Sub Main()
 		'write to iLogic Log
 		SharedVariable("LogVar") = "Batch Plot to PDFCreator" 
 		iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
-		
-		'create access to Batch Plot log
-		Dim oAppend As System.IO.StreamWriter
-		Dim oFile As String = "Z:\Inventor Data\BPLog.log"
-		
-		'try getting access to log, disable CSV output if access cannot be gained.  
-		Try
-			oAppend = IO.File.AppendText(oFile)
-		Catch
-			noWrite = True
-		End Try
-		
 		
 		'Start Stream output, user name and date stamp
 		If Not noWrite = True Then
@@ -91,11 +137,16 @@ Sub Main()
 
 			'Attempt to find a drawing file of the same name as the model doc
 			RefDwgFullFileName = FindDrawingFilePN(bDoc)
-			
+			oAppend.Write(BOMDoc & ",")
 			If RefDwgFullFileName.Length > FileNameMinLong Then 
 			
 				lstDrawings.Add(RefDwgFullFileName)
-
+				oAppend.WriteLine(RefDwgFullFileName)
+				
+			Else 
+				
+				oAppend.WriteLine("NO DRAWING FOUND")
+				
 			End If
 			
 		Next
@@ -113,6 +164,8 @@ Sub Main()
 	Finally 
 	
 		VaultAddin.Activate
+		oAppend.Flush
+		oAppend.Close
 		
 	End Try
 	
@@ -141,6 +194,7 @@ Private Sub MergePrintDwgs(strFilePath as String, lstDwgsPrint as List(of String
 		fullPath = DocumentFileName(strFilePath) 'Path.Combine(Path.GetTempPath, Path.GetTempFileName)
 		
 		'MsgBox("Initializing PDFCreator queue...")
+		'PDFCreatorQueue.ReleaseCom()
 		PDFCreatorQueue.Initialize()
 		
 		'setup options for open

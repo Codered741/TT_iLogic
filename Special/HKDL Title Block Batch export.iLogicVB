@@ -157,11 +157,13 @@ Sub Main()
 	' oPDFOptions.Value("Vector_Resolution") = 400
 	' oPDFOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
 	'End If
-	If PDFCreatorQueue.Count > 0 Then
-		PDFCreatorQueue.ReleaseCom()
-	End If
+
 	
-	PDFCreatorQueue.Initialize()
+	' If PDFCreatorQueue.Count > 0 Then
+		' PDFCreatorQueue.ReleaseCom()
+	' End If
+	
+	' PDFCreatorQueue.Initialize()
 	
 	oProgressBar = ThisApplication.CreateProgressBar(False, DrawingsList.Count, "Exporting Drawings...")
 	
@@ -258,13 +260,13 @@ Sub Main()
 		'Export DWG to Desktop folder
 			'get XML to to pack and go
 		If ExportDWG  = vbYes Then
-			DwgDoc.SaveAs(ExportPath & DwgDesProps.Item("Part Number").Value & ".dwg", True)
+			DwgDoc.SaveAs(ExportPath & DwgDesProps.Item("Part Number").Value & FileSuffix & ".dwg", True)
 		End If
 		
 		'Export PDF To Desktop folder
-		' oDataMedium.FileName = ExportPath & DwgDesProps.Item("Part Number").Value & ".pdf"
-		' oPDFAddIn.SaveCopyAs(DwgDoc, oContext, oPDFOptions, oDataMedium)
-		DwgPrint("PDFCreator")
+		 oDataMedium.FileName = ExportPath & DwgDesProps.Item("Part Number").Value & FileSuffix & ".pdf"
+		 oPDFAddIn.SaveCopyAs(DwgDoc, oContext, oPDFOptions, oDataMedium)
+		'DwgPrint("PDFCreator")
 		
 		'Close Drawing without saving
 		'DwgModelDoc.Close(True)
@@ -273,39 +275,39 @@ Sub Main()
 	
 	oProgressBar.Close
 	
-	If Not PDFCreatorQueue.WaitForJobs(DrawingsList.Count, DrawingsList.Count * 5) Then
-			MsgBox("The print job did not reach the queue within the allotted time.  ")
-		Else
+	' If Not PDFCreatorQueue.WaitForJobs(DrawingsList.Count, DrawingsList.Count * 5) Then
+			' MsgBox("The print job did not reach the queue within the allotted time.  ")
+		' Else
 		
-			PDFCreatorQueue.MergeAllJobs
-			'MsgBox("Currently there are " & PDFCreatorQueue.Count & " job(s) in the queue")
-			'MsgBox("Getting job instance")
-			job = PDFCreatorQueue.NextJob
+			' PDFCreatorQueue.MergeAllJobs
+			' 'MsgBox("Currently there are " & PDFCreatorQueue.Count & " job(s) in the queue")
+			' 'MsgBox("Getting job instance")
+			' job = PDFCreatorQueue.NextJob
 			
-			'MsgBox("Setting Default GUID")
-			job.SetProfileByGuid("DefaultGuid")
+			' 'MsgBox("Setting Default GUID")
+			' job.SetProfileByGuid("DefaultGuid")
 			
-			'MsgBox("Checking for existing file")
-			If System.IO.File.Exists(ExportPath & oDesProps.Item("Part Number").Value & ".pdf") Then 'If document exists, prompt user to overwrite
-				MessageBox.Show("A File already exists with this name, and will be overwritten!", "Batch Plot", MessageBoxButtons.OK, MessageBoxIcon.Information)
-				System.IO.File.Delete(ExportPath & oDesProps.Item("Part Number").Value & ".pdf")
-				'msgbox("deleted")
-			End If
+			' 'MsgBox("Checking for existing file")
+			' If System.IO.File.Exists(ExportPath & oDesProps.Item("Part Number").Value & ".pdf") Then 'If document exists, prompt user to overwrite
+				' MessageBox.Show("A File already exists with this name, and will be overwritten!", "Batch Plot", MessageBoxButtons.OK, MessageBoxIcon.Information)
+				' System.IO.File.Delete(ExportPath & oDesProps.Item("Part Number").Value & ".pdf")
+				' 'msgbox("deleted")
+			' End If
 			
 			
-			'MsgBox("Converting under ""DefaultGuid"" conversion profile")
-			job.ConvertTo(ExportPath & oDesProps.Item("Part Number").Value)
+			' 'MsgBox("Converting under ""DefaultGuid"" conversion profile")
+			' job.ConvertTo(ExportPath & oDesProps.Item("Part Number").Value)
 
-			If (Not job.IsFinished Or Not job.IsSuccessful) Then
-				MsgBox("Could not convert the file: " & ExportPath & oDesProps.Item("Part Number").Value & ".pdf")
-			Else
-				'MsgBox("Job finished successfully")
-			End If
-		End If
+			' If (Not job.IsFinished Or Not job.IsSuccessful) Then
+				' MsgBox("Could not convert the file: " & ExportPath & oDesProps.Item("Part Number").Value & ".pdf")
+			' Else
+				' 'MsgBox("Job finished successfully")
+			' End If
+		' End If
 	
-	PDFCreatorQueue.ReleaseCom()
+	' PDFCreatorQueue.ReleaseCom()
 	
-	'ReActivate Vault Addin	
+	' 'ReActivate Vault Addin	
 errhandle:
 	oTemplateDoc.Close(True)
 	
