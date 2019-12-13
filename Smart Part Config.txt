@@ -4,8 +4,21 @@
 Sub Main()
 	'Declarations
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument 
-	Dim oCompDef as ComponentDefinition = oDoc.ComponentDefinition
-	'Dim oCompBOM As BOM = oCompDef.BOM
+	
+	'Catch if run from drawing or IPN
+	If oDoc.DocumentType = 12292 Then 'kDrawingDocumentObject
+		MessageBox.Show("This rule can only be run in Assemblies and Parts.  Please try again.  ", "Model Only Rule")
+		Exit Sub
+	End If
+	
+	'Get the correct component definition based on the document type.
+	Dim oCompDef as Object
+	If oDoc.DocumentType = 12291 Then 'kAssemblyDocumentObject
+		oCompDef = CType(oDoc.ComponentDefinition, AssemblyComponentDefinition)
+	Else If oDoc.DocumentType = 12290 Then 'kPartDocumentObject
+		oCompDef = CType(oDoc.ComponentDefinition, PartComponentDefinition)
+	End If	
+
 	Dim oUOM As UnitsOfMeasure = oDoc.UnitsOfMeasure 
 	Dim oUOMstr As String = oUOM.GetStringFromType(oUOM.LengthUnits) 'for user prompt
 	Dim oUnitsEnum as Integer = oUom.LengthUnits
@@ -13,7 +26,7 @@ Sub Main()
 	Dim LString as String
 	Dim WString as String
 	Dim TString as String
-	Dim VersionNum as String = "2.2.1"
+	Dim VersionNum as String = "2.2.3"
 	Dim oCommandMgr As CommandManager = ThisApplication.CommandManager
 	Dim MsgComp as String = ""
 	Dim PropAddTries as Integer = 0
@@ -56,7 +69,7 @@ Sub Main()
 		pMatNum = customPropertySet.Item("MATERIAL NUMBER")
 		pMatDesc = customPropertySet.Item("MATERIAL DESCRIPTION")
 		pSPVer = customPropertySet.Item("SPVer")
-		pDetailer = customPropertySet("DETAILER")
+		pDetailer = customPropertySet.Item("DETAILER")
 	Catch
 		iLogicVB.RunExternalRule("Smart Part Property Add.Txt")
 		usrCancel = MessageBox.Show("Properties were added, please double check your entries.  ", "iLogic Property Check", MessageBoxButtons.OKCancel)
@@ -69,9 +82,16 @@ Sub Main()
 		Goto Start
 	End Try
 	
+	PropAddTries = 0
+	
 	If Not pSPVer.Value = VersionNum Then
 		iLogicVB.RunExternalRule("Smart Part Property Add.Txt")
-		MsgBox("Properties were added, please double check your entries.  ")
+		usrCancel = MessageBox.Show("Properties were added, please double check your entries.  ", "iLogic Property Check", MessageBoxButtons.OKCancel)
+		
+		If usrCancel = vbCancel Or PropAddTries > 2 Then ' exit potential infinite loop if property add rule errors more than twice or user cancels.  
+			Exit Sub
+		End If
+		PropAddTries += 1
 		Goto Start
 	End If
 	
@@ -79,6 +99,8 @@ Sub Main()
 	
 	'Design iProperties
 	Dim pPN = DesignPropertySet.Item("Part Number")	
+	Dim pCheckedDate = DesignPropertySet.Item("Date Checked")
+	Dim pApprovedDate = DesignPropertySet.Item("Engr Date Approved")
 	Dim pCreateDate = DesignPropertySet.Item("Creation Time")
 	Dim pDesc = DesignPropertySet.Item("Description")
 	
@@ -162,7 +184,7 @@ Sub Main()
 		MessageBox.Show("The entered part number is longer than 50 characters, and cannot be entered in Epicor.  " & vbLf & _
 			"Please ensure that the part description in not included in the Part Number field.  Please correct and re-run config.  ", "Smart Part Config",MessageBoxButtons.OK, MessageBoxIcon.Error)
 		If noWrite = False
-			oAppend.Write("Part Number Length Error")
+			oAppend.WriteLine("Part Number Length Error")
 			oAppend.Flush()
 			oAppend.Close()
 		End If
@@ -173,7 +195,7 @@ Sub Main()
 		MessageBox.Show("The entered Material Number is longer than 50 characters, and cannot be entered in Epicor.  " & vbLf & _
 			"Please correct and re-run config.  ", "Smart Part Config",MessageBoxButtons.OK, MessageBoxIcon.Error)
 		If noWrite = False
-			oAppend.Write("Material Number Length Error")
+			oAppend.WriteLine("Material Number Length Error")
 			oAppend.Flush()
 			oAppend.Close()
 		End If
@@ -181,6 +203,11 @@ Sub Main()
 	End If
 	'///////////////////////////////////////////////////////
 	'Begin configuration
+	
+	'Auto-fill Vendor Supplied Material value
+	If Parameter("VendorSupplyMtl") = True Then
+		pMatNum.Value = "--Vendor Supplied--"
+	End If
 	
 	'Check for invalid Revision number
 	Try 
@@ -207,11 +234,16 @@ Sub Main()
 		'kThreadMinorDiameter = 21762
 		'kThreadPitchDiameter = 21763
 		'kThreadTapDrillDiameter = 21764
+		
+	If oDoc.UnitsOfMeasure.LengthDisplayPrecision <> 3 Then
+		MsgBox("The document precision was incorrect.  Check yo holes!")
+		oDoc.UnitsOfMeasure.LengthDisplayPrecision = 3.123
+	End If
 	
-	'Set 'make' or 'buy'
+	' Set 'make' or 'buy'
 	If Parameter("MB") = False Then
 		pMB.Value = "Buy"
-		'pOPS.Value = "" 'removed for e-parts, to allow OPS while remaning a "buy" (publish to method)
+		' pOPS.Value = "" 'removed for e-parts, to allow OPS while remaning a "buy" (publish to method)
 		oCompDef.BOMStructure = 51973 'Set buys to 'purchased' BOM structure
 	Else
 		pMB.Value = "Make"
@@ -252,10 +284,18 @@ Sub Main()
 			MsgComp = MsgComp & "ERROR Material 1|"
 		End If
 		
-		If Parameter("VendorSupplyMtl") = False AndAlso Len(pMatDesc.Value) = 0 Then
-			MessageBox.Show("You have not entered a Material Number.  All Make parts require an entry in Material Number and Material Description.  " & vbLf & _
+		If Parameter("VendorSupplyMtl") = False AndAlso Len(pMatDesc.Value) = 0 OrElse Len(pMatNum.Value) = 0 Then
+			MessageBox.Show("You have not entered a Material Number or Description.  " & vbLF & _
+			" All 'Make' parts require an entry in Material Number and Material Description.  " & vbLf & _
 				"Please enter a material number for this part or, if the part is to be outsourced, check 'Vendor Supplied Material' and re-run the config.  ", "Material Number Error", MessageBoxButtons.OK, MessageBoxIcon.Warning)
 			MsgComp = MsgComp & "ERROR Material 2|"
+		End If
+		
+		If NOT Parameter("OP1").Contains("OS") AndAlso Len(Parameter("OP1")) > 5 AndAlso Parameter("VendorSupplyMtl") = True Then
+			MessageBox.Show("Parts that are made in house require material to be made from.  " & vblf & _
+				"Please uncheck 'Vendor Supplied Material' and enter a material number, or change the operations.  " & vbLf & _
+				"If you are not sure, check with your studio lead or the purchasing departament.  ","Material Error?", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+			MsgComp = MsgComp & "ERROR Material 3|"
 		End If
 		
 		'Router Material Checks
@@ -276,7 +316,9 @@ Sub Main()
 		'Mill Material Checks
 		If Parameter("OP1").Contains("OP010") Then
 			If pMatDesc.Value.ToLower.Contains("sheet") OrElse pMatDesc.Value.ToLower.Contains("plate") Then 
-				MessageBox.Show("Please check your material selection.  Sheet/Plate materials are not suitable for the Mill.  ", "Mill Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
+				MessageBox.Show("Please check your material selection.  Sheet/Plate materials are not suitable for the Mill.  " & vbLF & _
+				"Plates and Sheets must be cut by Router/Laser/Waterjet before they can be milled.  ", _
+				"Mill Material Error", MessageBoxButtons.OK, MessageBoxIcon.Information)
 				MsgComp = MsgComp & "ERROR Mill Material 1|"
 			End If
 		End If
@@ -292,8 +334,8 @@ Sub Main()
 	'Look for a configuration that appears to be an epart, and suggest adding ops, if necessary
 	Dim epart as Boolean = True
 	Dim debug as Boolean = True
-	If pPN.Value.Length >= 7 AndAlso pMB.Value = "Buy" AndAlso pOPS.Value.Length > 5 AndAlso debug = True Then
-		epart = InputRadioBox("Are you making an Epicor Manufactured Part?", "Yes, Products RULE!", "No, im a Douchebag", epart, "iLogic")
+	If pPN.Value.Length >= 7 AndAlso pMB.Value = "Buy" AndAlso pOPS.Value.Length > 5 Then
+		epart = InputRadioBox("Are you making an Epicor Manufactured Part?", "Yes, Products RULE!", "No, I hate saving money. ", epart, "iLogic")
 		If epart = True Then
 			pOPS.Value = "OP027:CNC Program~" & pOPS.Value
 			
@@ -338,20 +380,17 @@ Sub Main()
 	pWidth.Value = String.Format(Round(oUOM.ConvertUnits(sizes(1), oUnitsEnum, 11272), 1))
 	pThick.Value = String.Format(Round(oUOM.ConvertUnits(sizes(0), oUnitsEnum, 11272), 1))
 
-	'Auto-fill Vendor Supplied Material value
-	If Parameter("VendorSupplyMtl") = True Then
-		pMatNum.Value = "--Vendor Supplied--"
-	End If
-
 	'Auto Fill creation date field with todays date
 	pCreateDate.Value = DateString
+	pApprovedDate.Value = DateString
+	pCheckedDate.Value = DateString
 	
 	'Set BOM Quantity to each (Frame generator length based parts)
-	oDoc.ComponentDefinition.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kEachBOMQuantity)
+	oCompDef.BOMQuantity.SetBaseQuantity(BOMQuantityTypeEnum.kEachBOMQuantity)
 	
 	'run rule to fill values for machining estimation
 	If ThisApplication.UserName = "Cody Redding" Then
-		'iLogicVb.RunExternalRule("Time Estimate.iLogicVb") 'not ready for primetime
+		iLogicVb.RunExternalRule("Time Estimate.iLogicVb") 'not ready for primetime
 		'MsgBox("You are AWESOME!")
 	End If
 	

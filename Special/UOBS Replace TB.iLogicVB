@@ -119,7 +119,7 @@ Sub Main
 				oSheet.Border.Delete
 				oSheet.AddBorder(oBorderDef)
 				oSheet.TitleBlock.Delete
-				oSheet.AddTitleBlock(oAddPageDef) 
+				oSheet.AddTitleBlock(oAddPageDef)
 				
 			End If
 		Next

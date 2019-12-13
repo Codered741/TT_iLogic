@@ -88,19 +88,19 @@ Sub Main()
 	Select Case ParkSelect
 	Case ParkList(0) 'Osaka
 		TemplateFile = "C:\_vaultWIP\Designs\Templates\Universal\US_JAPAN\_USJ_STANDARD TEMPLATE_SIZE B_11x17.idw"
-		TemplateTBName1 = ""
-		TemplateTBName2 = ""
+		TemplateTBName1 = "UNIVERSAL JAPAN MAIN SHEET"
+		TemplateTBName2 = "UNIVERSAL JAPAN 2ND SHEET"
 	Case ParkList(1) 'Hollywood
 		TemplateFile = "C:\_vaultWIP\Designs\Templates\Universal\US_HOLLYWOOD\_USH_STANDARD TEMPLATE_SIZE B_11x17.idw"
-		TemplateTBName1 = ""
-		TemplateTBName2 = ""
+		TemplateTBName1 = "UNIVERSAL HOLLYWOOD MAIN SHEET"
+		TemplateTBName2 = "UNIVERSAL HOLLYWOOD 2ND SHEET"
 	Case ParkList(2) 'Orlando
 		TemplateFile = "C:\_vaultWIP\Designs\Templates\Universal\US_FLORIDA\_USF_STANDARD TEMPLATE_SIZE B_11x17.idw"
 		TemplateTBName1 = "UNIVERSAL FLORIDA MAIN SHEET"
 		TemplateTBName2 = "UNIVERSAL FLORIDA 2ND SHEET"
 	End Select
 	
-	ExportDWG = MessageBox.Show("Do you want to export 2D DWG's for the parts?", "Export DWG's?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
+	ExportDWG = MessageBox.Show("Do you want to export 2D DWG's of the drawings?", "Export DWG's?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 	
 	'Create Folder for Drawing Export (User Desktop)
 	Dim ExportPath as String = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop) & "\SMLYDKMK\" & pJobNum.Value & "\" & Now.ToString("yyyyMMddHHmm") & "\"
@@ -132,12 +132,12 @@ Sub Main()
 	oPDFOptions = ThisApplication.TransientObjects.CreateNameValueMap
 	oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
 
-	'If oPDFAddIn.HasSaveCopyAsOptions(oDataMedium, oContext, oOptions) Then
-	oPDFOptions.Value("All_Color_AS_Black") = 0
-	oPDFOptions.Value("Remove_Line_Weights") = 1
-	oPDFOptions.Value("Vector_Resolution") = 400
-	oPDFOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
-	'End If
+	If oPDFAddIn.HasSaveCopyAsOptions(oDataMedium, oContext, oOptions) Then
+		oPDFOptions.Value("All_Color_AS_Black") = 0
+		oPDFOptions.Value("Remove_Line_Weights") = 1
+		oPDFOptions.Value("Vector_Resolution") = 400
+		oPDFOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
+	End If
 		
 	'Open each drawing (Fast open, defer updates) to do updates and export drawing
 	For Each Dwg in DrawingsList
@@ -163,7 +163,7 @@ Sub Main()
 		End If
 		
 		If DwgModelFile Is Nothing
-			MessageBox.Show("A problem occurred in getting the model for this drawing.  Exiting.  ", "Model Problem", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			MessageBox.Show("A problem occurred in getting the model for this drawing.  " & Ref.FullFileName & "  Exiting.  ", "Model Problem", MessageBoxButtons.OK, MessageBoxIcon.Error)
 			Exit Sub
 		End If
 		
@@ -239,8 +239,9 @@ Sub Main()
 		DwgDoc.Close(True)
 	Next
 	
-	'ReActivate Vault Addin	
+		
 errhandle:
+	'Close tempalate for integrity
 	oTemplateDoc.Close(True)
 	
 	'Display complete message with option to open folder
@@ -253,6 +254,7 @@ errhandle:
 		MsgBox("The operation failed.  The Error was: " & Err.Description)
 	End If
 	
+	'ReActivate Vault Addin
 	VaultAddin.Activate()
 	
 End Sub 'Main

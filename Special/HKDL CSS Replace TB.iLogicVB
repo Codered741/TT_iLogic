@@ -41,7 +41,7 @@ Sub Main
 	oCtrlDef.Item("UpdateCopiedModeliPropertiesCmd").Execute
 	oCtrlDef.Item("UpdateStylesCmd").Execute
 	
-	SharedVariable("LogVar") = "HKDL Replace TB - TEST"
+	SharedVariable("LogVar") = "HKDL Replace TB"
 	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
 	
 	'check file type 
@@ -117,9 +117,9 @@ Sub Main
 	oSheet1.AddBorder(oBorderDef)
 	oSheet1.AddTitleBlock(oTB1Def)
 
-	If oDoc.AllReferencedDocuments.Item(1).DocumentType = kPartDocumentObject Then	
-		InsertSketchedSymbolOnSheet(oDoc, "Univ. Part Notes")
-	End If
+	' If oDoc.AllReferencedDocuments.Item(1).DocumentType = kPartDocumentObject Then	
+		' InsertSketchedSymbolOnSheet(oDoc, "Univ. Part Notes")
+	' End If
 	
 	If oSheets.Count > 1 Then
 		

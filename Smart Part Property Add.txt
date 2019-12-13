@@ -8,6 +8,12 @@ Sub Main()
 	
 	'Init
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument
+	
+	If oDoc.DocumentType = kDrawingDocumentObject Then
+		MessageBox.Show("This rule can only be run in Assemblies and Parts.  Please try again.  ", "Model Only Rule")
+		Exit Sub
+	End If
+	
 	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
 	
 	Dim TTPropsTxt As New List(Of String)
@@ -21,7 +27,7 @@ Sub Main()
 	Dim CustomGroupName As String = "TAIT Smart Part"
 	Dim pSPVer
 	Dim pSP
-	Dim VersionNum as String = "2.2.1"
+	Dim VersionNum as String = "2.2.3"
 	
 	'Add Values To List
 	'String iProperties - for smart part
@@ -116,7 +122,7 @@ End Sub
 '''''''''''''''''''''''''Subroutines
 Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 	
-	Dim OPList(0 to 33) As String 
+	Dim OPList(0 to 36) As String 
 	
 	OPList(0)=""" """
 	OPList(1)="""OP009:Lathe CNC~"""
@@ -146,17 +152,32 @@ Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 	OPList(25)="""OP071:OS - 2D Laser & Form~"""
 	OPList(26)="""OP080:OS – Plating~"""
 	OPList(27)="""OP086:OS – Polishing~"""
-	OPList(28)="""OP110:OS - Routing~"""
-	OPList(29)="""OP139:3D – Printing~"""
-	OPList(30)="""OP141:OS - Upholstery~"""
-	OPList(31)="""OP145:Post Processing~"""
-	OPList(32)="""OP146:Laser Cutting / Etching~"""
-	OPList(33)="""OP186:OS - Spray Paint~"""
+	OPList(28)="""OP087: OS - Sandblast~"""
+	OPList(29)="""OP110:OS - Routing~"""
+	OPList(30)="""OP139:3D – Printing~"""
+	OPList(31)="""OP141:OS - Upholstery~"""
+	OPList(32)="""OP145:Post Processing~"""
+	OPList(33)="""OP146:Laser Cutting / Etching~"""
+	OPList(34)="""OP186:OS - Spray Paint~"""
+	OPList(35)="""OP189:OS - Heat Treat & Destruction~"""
+	OPList(36)="""OP191:OS - Passivate~"""
 	
 	Dim OPx As Parameter
 	
 	Dim UserParams As UserParameters
-	Dim oCompDef as ComponentDefinition = ThisApplication.ActiveEditDocument.ComponentDefinition
+	
+	Dim oCompDef as Object
+	Dim oDoc as Document = ThisApplication.ActiveEditDocument
+	
+	If oDoc.DocumentType = 12291 Then 'kAssemblyDocumentObject
+	'	msgBox("asm")
+		oCompDef = CType(oDoc.ComponentDefinition, AssemblyComponentDefinition)
+	Else If oDoc.DocumentType = 12290 Then 'kPartDocumentObject
+	'	msgbox("part")
+		oCompDef = CType(oDoc.ComponentDefinition, PartComponentDefinition)
+	End If
+	'Dim oCompDef as ComponentDefinition = ThisApplication.ActiveEditDocument.ComponentDefinition
+	
 	UserParams = oCompDef.Parameters.UserParameters
 	' Dim ParamGroup as CustomParameterGroup
 	
@@ -175,7 +196,7 @@ Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 			' ParamGroup.Add(oParameter)
 		End Try
 		
-		OPx = ThisApplication.ActiveEditDocument.ComponentDefinition.Parameters.UserParameters.Item(pmtr)
+		OPx = oCompDef.Parameters.UserParameters.Item(pmtr)
 		
 		OPx.ExpressionList.ClearAll()
 		OPx.ExpressionList.SetExpressionList(OPList, False)	
@@ -218,11 +239,20 @@ End Sub
 
 Sub ParamAdd(Params As List(Of String), UnitType As String, GroupName as String)
 	'Init
-	Dim oPartDoc As Document = ThisApplication.ActiveEditDocument
+	Dim oDoc As Document = ThisApplication.ActiveEditDocument
 	
-	'If oPartDoc.DocumentType = kAssemblyDocumentObject Then
-	Dim oCompDef As ComponentDefinition = oPartDoc.ComponentDefinition
-	Dim oMyParameter as UserParameters = oCompDef.Parameters.UserParameters
+	Dim oCompDef as Object
+	
+	If oDoc.DocumentType = 12291 Then 'kAssemblyDocumentObject
+	'	msgBox("asm")
+		oCompDef = CType(oDoc.ComponentDefinition, AssemblyComponentDefinition)
+	Else If oDoc.DocumentType = 12290 Then 'kPartDocumentObject
+	'	msgbox("part")
+		oCompDef = CType(oDoc.ComponentDefinition, PartComponentDefinition)
+	End If
+	
+	'Dim oCompDef As ComponentDefinition = oDoc.ComponentDefinition
+	oMyParameter = oCompDef.Parameters.UserParameters
 	' Dim ParamGroup as CustomParameterGroup
 	
 	' Try
@@ -273,7 +303,19 @@ End Sub
 
 Sub CustomParamGroup(Doc as Document, Params as List(of String), GroupName As String)
 
-	Dim oCompDef as ComponentDefinition = Doc.ComponentDefinition
+	Dim oCompDef as Object
+	Dim oDoc as Document = ThisApplication.ActiveEditDocument
+	
+	If oDoc.DocumentType = 12291 Then 'kAssemblyDocumentObject
+	'	msgBox("asm")
+		oCompDef = CType(oDoc.ComponentDefinition, AssemblyComponentDefinition)
+	Else If oDoc.DocumentType = 12290 Then 'kPartDocumentObject
+	'	msgbox("part")
+		oCompDef = CType(oDoc.ComponentDefinition, PartComponentDefinition)
+	End If
+	
+	'Dim oCompDef as ComponentDefinition = Doc.ComponentDefinition
+	
 	UserParams = oCompDef.Parameters.UserParameters
 	
 	Dim ParamGroup as CustomParameterGroup
