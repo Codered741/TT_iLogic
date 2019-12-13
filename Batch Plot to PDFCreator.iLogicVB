@@ -28,16 +28,20 @@ Sub Main()
 	
 'confirm getting latest drawings
 	Dim usrLatestAck = MessageBox.Show("Please ensure that you have the latest drawings of this assembly.  "  _
-		& vbLf & "Would you like to get the latest drawings from Vault?", "Latest Drawing Warning", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning)
+		& vbLf & "Would you like to get the latest drawings from Vault? " _ 
+		& vbLf & "This can take some time with larger assemblies.  ", "Latest Drawing Warning", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning)
 		
 	If usrLatestAck = vbCancel Then	
 		Exit Sub
 	Else If usrLatestAck = vbYes Then
 		iLogicVB.RunExternalRule("Get Latest from Vault.iLogicVB")
-		If SharedVariable("VaultGetFail") = True Then
-			MessageBox.Show("There was an error getting files from Vault.  Please try again.  ", "Get latest from Vault Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
-			Exit Sub
-		End If
+
+		'Error checking is not yet supported
+		' If SharedVariable("VaultGetFail") = True Then
+			' MessageBox.Show("There was an error getting files from Vault.  Please try again.  ", "Get latest from Vault Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			' Exit Sub
+		' End If
+
 	End If
 
 'confirm comparing the part and drawing versions to be ready for posting
