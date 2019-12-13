@@ -5,14 +5,14 @@ Imports System.Text
 
 Sub Main()
 	
-	SharedVariable.RemoveAll()
+	'SharedVariable.RemoveAll()
 	
-	Dim usrLatestAck = MessageBox.Show("Please ensure that you have the latest drawings of this assembly.  "  _
-		& vbLf & "Contact #des_inventor for assistance.  ", "Latest Drawing Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
+	' Dim usrLatestAck = MessageBox.Show("Please ensure that you have the latest drawings of this assembly.  "  _
+		' & vbLf & "Contact #des_inventor for assistance.  ", "Latest Drawing Warning", MessageBoxButtons.OKCancel, MessageBoxIcon.Warning)
 		
-	If usrLatestAck = vbCancel Then	
-		Exit Sub
-	End If
+	' If usrLatestAck = vbCancel Then	
+		' Exit Sub
+	' End If
 	
 	Dim oDoc as Document = ThisApplication.ActiveDocument
 	Dim FileNameMinLong as Integer = 21 'c:/_vaultWIP/Designs/ is 21 characters.  
@@ -93,7 +93,12 @@ Sub Main()
 	Next
 	
 	oProgressBar.Close		
-	
+	Try 
+		SVal = SharedVariable("BatchPlotInvoke")
+	Catch 
+		SharedVariable("BatchPlotInvoke") = False
+	End Try
+
 	If lstDrawings.Count > 0 Then
 	
 		If SharedVariable("BatchPlotInvoke") = False
