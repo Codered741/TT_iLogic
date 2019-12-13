@@ -26,9 +26,13 @@ Sub Main()
 		Exit Sub
 	End If
 	
+	'deactivate the Vault Addin to reduce the number of prompts.
+	
+	Dim VaultAddin As Inventor.ApplicationAddIn = ThisApplication.ApplicationAddIns.ItemById("{48B682BC-42E6-4953-84C5-3D253B52E77B}")
+	VaultAddin.Deactivate()
+	
 'confirm getting latest drawings
-	Dim usrLatestAck = MessageBox.Show("Please ensure that you have the latest drawings of this assembly.  "  _
-		& vbLf & "Would you like to get the latest drawings from Vault? " _ 
+	Dim usrLatestAck = MessageBox.Show("Would you like to get the latest drawings from Vault? " _ 
 		& vbLf & "This can take some time with larger assemblies.  ", "Latest Drawing Warning", MessageBoxButtons.YesNoCancel, MessageBoxIcon.Warning)
 		
 	If usrLatestAck = vbCancel Then	
@@ -60,28 +64,27 @@ Sub Main()
 	End If
 	
 'begin the Batch Plot process
-	Dim VaultAddin As Inventor.ApplicationAddIn = ThisApplication.ApplicationAddIns.ItemById("{48B682BC-42E6-4953-84C5-3D253B52E77B}")
-	VaultAddin.Deactivate()
+	
 	
 	'create access to Batch Plot log
-	Dim oAppend As System.IO.StreamWriter
-	Dim oFile As String = "Z:\Inventor Data\BPLog - Copy.log"
-	Dim noWrite as Boolean = False
+	' Dim oAppend As System.IO.StreamWriter
+	' Dim oFile As String = "C:\_vaultWIP\BPLog.log" ' "Z:\Inventor Data\BPLog - Copy.log"
+	' Dim noWrite as Boolean = False
 	
 	'try getting access to log, disable CSV output if access cannot be gained.  
-	Try
-		oAppend = IO.File.AppendText(oFile)
-	Catch
-		noWrite = True
-		MsgBox("Attempting to write to local log.  ")
-		oFile = "C:\_vaultWIP\BPLog.log"
-		If Not My.Computer.FileSystem.FileExists(oFile) Then
-			System.IO.File.Create(oFile)
-		End If
+	' Try
+		' oAppend = IO.File.AppendText(oFile)
+	' Catch
+		' ' noWrite = True
+		' 'MsgBox("Attempting to write to local log.  ")
+		' ' oFile = 
+		' If Not My.Computer.FileSystem.FileExists(oFile) Then
+			' System.IO.File.Create(oFile)
+		' End If
 		
-		oAppend = IO.File.AppendText(oFile)
+		' oAppend = IO.File.AppendText(oFile)
 		
-	End Try
+	' End Try
 
 	Try 
 		Dim oDoc as Document = ThisApplication.ActiveDocument
@@ -98,10 +101,10 @@ Sub Main()
 		iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
 		
 		'Start Stream output, user name and date stamp
-		If Not noWrite = True Then
-			oAppend.WriteLine("/////////////////////BATCH EXPORT PDF/////////////////////")
-			oAppend.WriteLine(ThisApplication.UserName & "," & DateTime.Now.ToString("G") & "," & oDoc.FullFileName)
-		End If
+		' If Not noWrite = True Then
+			' oAppend.WriteLine("/////////////////////BATCH EXPORT PDF/////////////////////")
+			' oAppend.WriteLine(ThisApplication.UserName & "," & DateTime.Now.ToString("G") & "," & oDoc.FullFileName)
+		' End If
 		
 		Dim lstDrawings as New List(of String)
 		
@@ -137,15 +140,15 @@ Sub Main()
 
 			'Attempt to find a drawing file of the same name as the model doc
 			RefDwgFullFileName = FindDrawingFilePN(bDoc)
-			oAppend.Write(BOMDoc & ",")
+			' oAppend.Write(BOMDoc & ",")
 			If RefDwgFullFileName.Length > FileNameMinLong Then 
 			
 				lstDrawings.Add(RefDwgFullFileName)
-				oAppend.WriteLine(RefDwgFullFileName)
+				' oAppend.WriteLine(RefDwgFullFileName)
 				
-			Else 
+			' Else 
 				
-				oAppend.WriteLine("NO DRAWING FOUND")
+				' oAppend.WriteLine("NO DRAWING FOUND")
 				
 			End If
 			
@@ -164,8 +167,8 @@ Sub Main()
 	Finally 
 	
 		VaultAddin.Activate
-		oAppend.Flush
-		oAppend.Close
+		' oAppend.Flush
+		' oAppend.Close
 		
 	End Try
 	
