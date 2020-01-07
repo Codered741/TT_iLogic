@@ -75,6 +75,12 @@ Sub Main()
 		Exit Sub
 	End If	
 	
+	Dim FileSuffix as String = InputBox("Please enter desired file suffix.  ", "File Suffix", "")
+	
+	If FileSuffix.Length > 0 Then
+		FileSuffix = " - " & FileSuffix
+	End If
+	
 	'Extract Show Number from Kit.  For use in used on and next assembly
 	'ShowNum = Left(pJobNum.Value, InStr(pJobNum.Value, "-")-1)
 
@@ -83,9 +89,7 @@ Sub Main()
 		MsgBox("Active Document is not an Assembly.  Please run from an Assembly. ")
 		Exit Sub
 	End If
-	
-
-	
+		
 	'allow user to pick park from list
 		'correlate park to corresponding title block for swapping
 		'specify file name, and title block name to apply
@@ -145,20 +149,18 @@ Sub Main()
 	oTemplateDoc = ThisApplication.Documents.OpenWithOptions(TemplateFile, oOptions, False)
 
 	'configure PDF export options
-	' oPDFAddIn = ThisApplication.ApplicationAddIns.ItemById("{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}")
-	' oContext = ThisApplication.TransientObjects.CreateTranslationContext
-	' oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
-	' oPDFOptions = ThisApplication.TransientObjects.CreateNameValueMap
-	' oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+	oPDFAddIn = ThisApplication.ApplicationAddIns.ItemById("{0AC6FD96-2F4D-42CE-8BE0-8AEA580399E4}")
+	oContext = ThisApplication.TransientObjects.CreateTranslationContext
+	oContext.Type = IOMechanismEnum.kFileBrowseIOMechanism
+	oPDFOptions = ThisApplication.TransientObjects.CreateNameValueMap
+	oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
 
-	' 'If oPDFAddIn.HasSaveCopyAsOptions(oDataMedium, oContext, oOptions) Then
-	' oPDFOptions.Value("All_Color_AS_Black") = 0
-	' oPDFOptions.Value("Remove_Line_Weights") = 1
-	' oPDFOptions.Value("Vector_Resolution") = 400
-	' oPDFOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
-	'End If
-
-	
+	If oPDFAddIn.HasSaveCopyAsOptions(oDataMedium, oContext, oOptions) Then
+		oPDFOptions.Value("All_Color_AS_Black") = 0
+		oPDFOptions.Value("Remove_Line_Weights") = 1
+		oPDFOptions.Value("Vector_Resolution") = 400
+		oPDFOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
+	End If
 	' If PDFCreatorQueue.Count > 0 Then
 		' PDFCreatorQueue.ReleaseCom()
 	' End If
