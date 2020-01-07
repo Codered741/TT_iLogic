@@ -55,12 +55,17 @@ Sub Main()
 		uScale = InputRadioBox("Auto Scale?", "Yes", "No", uScale, Title := "Scale")
 			
 		'Set the View Scales
-		Dim DrawingViewScale As Double
+		Dim DrawingViewScale 'As Double
 		
 		If uScale = True Then
 			DrawingViewScale = 4/iProperties.Value("Custom", "LENGTH")
 		Else 
-			DrawingViewScale = InputBox("Enter Scale", "Scale", "1/1")
+		viewScale:
+			DrawingViewScale = InputBox("Enter Scale", "Scale", "1")
+			If Not Double.TryParse(DrawingViewScale, 1.1) Then 'ShowNumber.Length = 6 Then
+				MsgBox("The scale value must be a decimal number (double), like 0.15 .  ")
+				Goto viewScale
+			End If
 		End If
 		
 		Dim ModelDocName As String 
