@@ -50,10 +50,12 @@
 
 		iProperties.Value("Project", "Creation Date") = oCreateDate
 		
-		If oDoc.ComponentDefinition.BOMStructure <> 51970 Then
+		Dim oCompDef as AssemblyComponentDefinition = oDoc.ComponentDefinition
+		
+		If oCompDef.BOMStructure <> 51970 Then
 		
 			MessageBox.Show("Your BOM Structure not set to 'Normal'.  Changing the BOM structure to Normal")
-			oDoc.ComponentDefinition.BOMStructure = 51970
+			oCompDef.BOMStructure = 51970
 			
 		End If
 		
