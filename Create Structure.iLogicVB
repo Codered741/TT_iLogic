@@ -61,7 +61,7 @@ Sub Main()
 		End If
 		
 		If Err.Number <> 0 Then 
-			MessageBox.Show("This show was not created with the correct rule.  Please contact #des_inventor for assistance", "Not Auto Assembly", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			MessageBox.Show("An Error has occurred, please try again.  ", "Create Element Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
 		End If
 		
 	Else If pDL.Value = "Element" Then 'Create Kits
@@ -74,7 +74,7 @@ Sub Main()
 		End If
 		
 		If Err.Number <> 0 Then 
-			MessageBox.Show("This Element was not created with the correct rule.  Please contact #des_inventor for assistance", "Not Auto Assembly", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			MessageBox.Show("An Error has occurred, please try again.  ", "Create Kit Error", MessageBoxButtons.OK, MessageBoxIcon.Error)
 		End If
 		
 	Else if pDL.Value = "Kit" Then
@@ -106,6 +106,7 @@ Sub CreateShow()
 	showNum:
 	'get job number from user = JOBNUMBER
 	Dim ShowNumber as String = InputBox("Please enter the Base Epicor Job Number.  ", "Job Number", "")
+	
 	If Not Int32.TryParse(ShowNumber, 000000) Then 'ShowNumber.Length = 6 Then
 		MsgBox("The Show Number must be an integer.  ")
 		Goto showNum
@@ -117,10 +118,10 @@ Sub CreateShow()
 	End If
 	'create folder in WIP
 	'$\PROJECTNAME - PROJECTNUMBER
-	dim ShowDir = "C:\_vaultWIP\Designs\" & ParsePrjName(sfPath)
+	dim ShowDir = "C:\_vaultWIP\Designs\" & ParsePrjName(sfPath) '"C:\_vaultWIP\Designs\CHICAGO LYRIC OPERA 2020 RNTLS - 20A0008"
 	
-	If Directory.Exists(ShowDir & ShowNumber & "\") Then
-			MsgBox("A folder already exists in your WIP for this show.  Please check to see if the show has already been created.  ")
+	If System.IO.File.Exists(ShowDir & "\" & ShowNumber & ".iam") Then
+			MsgBox("An assembly with this name already exists in your WIP for this show.  Please check to see if the show has already been created.  ")
 			Exit Sub
 	Else 
 		Directory.CreateDirectory(ShowDir)
@@ -137,7 +138,7 @@ Sub CreateShow()
 		'done automatically as a part of save
 		
 	'fill properties
-	SetProps(oShowAsm, ParsePrjName(sfPath), "Master Assembly", sfPath & "X-REF MASTER FILES\" & ShowNumber & " - INVENTOR MASTER ASSEMBLY\", ShowNumber, "", "Show")
+	SetProps(oShowAsm, ParsePrjName(sfPath), "MASTER ASSEMBLY", sfPath & "X-REF MASTER FILES\" & ShowNumber & " - INVENTOR MASTER ASSEMBLY\", ShowNumber, "", "Show")
 
 	oShowAsm.Update
 	oShowAsm.Save
@@ -151,15 +152,16 @@ Sub CreateElement(doc as AssemblyDocument)
 	elementProj = Doc.PropertySets.Item("Design Tracking Properties").Item("Project").Value
 	'Prompt user for element number and description
 	eDesc:
-	elementDesc = InputBox("Enter Element Description", "Element Description", "")
-	
-	If elementDesc.Length > 37 OrElse elementDesc.Length < 5 Then
-		MsgBox("Description must be between 5 and 37 characters.  Try again")
+	Dim elementDesc as String = InputBox("Enter Element Description", "Element Description", "").ToUpper
+
+	If elementDesc.Length > 37 OrElse elementDesc.Length < 3 Then
+		MsgBox("Description must be between 3 and 37 characters.  Try again")
 		GoTo eDesc
 	End If
 
 	eNumber:
-	elementNum = InputBox("Enter Element Number", "Element Number", "")
+	Dim elementNum As String = InputBox("Enter Element Number", "Element Number", "")
+	
 	If Not elementNum.Length = 2 Then 
 		MsgBox("Element Number must be two digits.  Try Again.  ")
 		Goto eNumber
@@ -177,13 +179,13 @@ Sub CreateElement(doc as AssemblyDocument)
 	
 	elementNum = showNum & "-" & elementNum
 	
-	Dim ElementDir = "C:\_vaultWIP\Designs\" & elementProj & "\" & elementNum & "\"
-	If Directory.Exists(ElementDir) Then
-			MsgBox("A folder already exists in your WIP for this element.  Please check to see if the element has already been created.  ")
-			Exit Sub
-	Else 
-		Directory.CreateDirectory(ElementDir)
-	End If
+	' Dim ElementDir = "C:\_vaultWIP\Designs\" & elementProj & "\" & elementNum & "\"
+	' If Directory.Exists(ElementDir) Then
+			' MsgBox("A folder already exists in your WIP for this element.  Please check to see if the element has already been created.  ")
+			' Exit Sub
+	' Else 
+		' Directory.CreateDirectory(ElementDir)
+	' End If
 	
 	Dim oElementAsm As AssemblyDocument = ThisApplication.Documents.Add(kAssemblyDocumentObject, "C:\_vaultWIP\Designs\Templates\TT_Kit.iam", True)
 	
@@ -231,14 +233,16 @@ Sub CreateKit(doc As AssemblyDocument)
 	
 	'Prompt user for kit number and description
 	kDesc:
-	kitDesc = InputBox("Enter Kit Description", "Kit Description", "")
-	If kitDesc.Length > 37 OrELse kitDesc.Length < 5 Then
-		MsgBox("Description must be between 5 and 37 characters.  Try again")
+	Dim kitDesc As String = InputBox("Enter Kit Description", "Kit Description", "").ToUpper
+	
+	If kitDesc.Length > 37 OrELse kitDesc.Length < 3 Then
+		MsgBox("Description must be between 3 and 37 characters.  Try again")
 		GoTo kDesc
 	End If
 
 	kNumber:
-	kitNum = InputBox("Enter Kit Number", "Kit Number", "")
+	Dim kitNum As String = InputBox("Enter Kit Number", "Kit Number", "")
+
 	If Not kitNum.Length = 2 Then 
 		MsgBox("Kit Number must be two digits.  Try Again.  ")
 		Goto kNumber
@@ -265,7 +269,7 @@ Sub CreateKit(doc As AssemblyDocument)
 	okitAsm.ComponentDefinition.Occurrences.Item(1).Delete
 	
 	'Write properties to kit
-	SetProps(okitAsm, kitProj, kitDesc, eleExportPath & "\SUB ASSEMBLIES\" & kitNum & "-" & kitDesc.ToUpper & "\", kitNum, eleDesc, "Kit")
+	SetProps(okitAsm, kitProj, kitDesc, eleExportPath & "SUB ASSEMBLIES\" & kitNum & "-" & kitDesc.ToUpper & "\", kitNum, eleDesc, "Kit")
 	
 	Dim oTG as TransientGeometry = ThisApplication.TransientGeometry
 	Dim oMatrix as Matrix = oTG.CreateMatrix

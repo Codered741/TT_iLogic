@@ -1,0 +1,9 @@
+
+Dim oDoc as Document = ThisApplication.ActiveDocument
+Dim oCustProps as Inventor.PropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+
+For Each Prop in oCustProps
+	Prop.Delete
+Next
+
+iProperties.Value("Project", "Revision Number") = 0

@@ -1,6 +1,5 @@
 ﻿'Check for file in Vault
 'https://forums.autodesk.com/t5/inventor-customization/search-vault-to-see-if-a-part-exists/td-p/8786941
-'add shared variable to notify of failure.  For Batch Plot
 
 AddReference "Autodesk.Connectivity.WebServices.dll"
 Imports AWS = Autodesk.Connectivity.WebServices
@@ -12,11 +11,6 @@ Imports VB = Connectivity.Application.VaultBase
 
 Sub Main()
 
-
-	SharedVariable("LogVar") = "Get Latest from Vault"
-	iLogicVb.RunExternalRule("Write SV to Log.iLogicVB")
-	
-	
 	Dim mVltCon As VDF.Vault.Currency.Connections.Connection 
 	mVltCon = VB.ConnectionManager.Instance.Connection
 	  

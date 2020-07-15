@@ -14,7 +14,7 @@ Sub Main()
 	Dim Debug as Boolean = False 'enable debug mode
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument
 	
-	Dim oCompDef as ComponentDefinition
+	Dim oCompDef as PartComponentDefinition
 	Dim userProps as PropertySet
 	Dim pOPS
 	Dim pMtlRem
@@ -156,7 +156,7 @@ Sub Main()
 		
 	Else 
 	
-		'MessageBox.Show("Machining estimation is only valid for parts.  ", "Machining Estimation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+		MessageBox.Show("Machining estimation is only valid for parts.  ", "Machining Estimation", MessageBoxButtons.OK, MessageBoxIcon.Warning)
 		' pHoles.Value = 0
 		' pHolesTap.Value = 0
 		' pEdges.Value = 0

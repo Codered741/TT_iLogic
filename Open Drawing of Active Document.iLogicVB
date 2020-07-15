@@ -52,7 +52,7 @@ End Sub
 
 Public Function GetActiveDoc() As Inventor.Document
 
-    GetActiveDoc = ThisApplication.ActiveEditDocument
+    GetActiveDoc = ThisApplication.ActiveDocument
     
 End Function
 

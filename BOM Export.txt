@@ -32,7 +32,6 @@ Select Case oBOM
 	Case "All Levels"
 		oDocBOM.StructuredViewEnabled = True
 		oDocBOM.StructuredViewFirstLevelOnly = False
-		oBOM = "Structured"
 End Select
 
 

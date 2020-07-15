@@ -1,6 +1,4 @@
-﻿'Check for file in Vault
-'https://forums.autodesk.com/t5/inventor-customization/search-vault-to-see-if-a-part-exists/td-p/8786941
-'add shared variable to notify of failure.  For Batch Plot
+﻿'pull specified number of sequential numbers from Vault sequential number scheme
 
 AddReference "Autodesk.Connectivity.WebServices.dll"
 Imports AWS = Autodesk.Connectivity.WebServices
@@ -9,11 +7,12 @@ Imports VDF = Autodesk.DataManagement.Client.Framework
 AddReference "Connectivity.Application.VaultBase.dll"
 Imports VB = Connectivity.Application.VaultBase
 
+Imports My.Computer.FileSystem
 
 Sub Main()
 
 
-	SharedVariable("LogVar") = "Get Latest from Vault"
+	SharedVariable("LogVar") = "Reserve Sequential TESTING"
 	iLogicVb.RunExternalRule("Write SV to Log.iLogicVB")
 	
 	
@@ -25,38 +24,50 @@ Sub Main()
 		 Exit Sub
 	End If
 	
-	Dim oDoc As Document = ThisApplication.ActiveEditDocument
-	Dim oDocIt As VDF.Vault.Currency.Entities.FileIteration = GetVaultFile(oDoc.FullFileName, mVltCon)
+	' Dim oDoc As Document = ThisApplication.ActiveEditDocument
+	' Dim oDocIt As VDF.Vault.Currency.Entities.FileIteration = GetVaultFile(oDoc.FullFileName, mVltCon)
 	
-	DownloadAssembly(oDocIt, mVltCon)
+	' DownloadAssembly(oDocIt, mVltCon)
 	
 	
-	' Dim DwgName As String 
 	
-	' If FindDrawingFilePN(oDoc) = "" Then
-		
-		' MsgBox("Drawing not found in WIP") 
-		
-		' DwgName = oDoc.FullFileName
-		
-		' If oDoc.DocumentType = kPartDocumentObject Then
-			' DwgName = DwgName.Replace(".ipt", ".dwg")
-		' Else If oDoc.DocumentType = kAssemblyDocumentObject Then
-			' DwgName = DwgName.Replace(".iam", ".dwg")
-		' Else
-			' Msgbox("Please run from part or assembly")
-			' Exit Sub
-		' End If
-		
-		' CheckVault(DwgName)
-
-	' Else
-	
-		' Msgbox("File found in WIP")
-		
-	' End If
 		
 End Sub 'Main
+
+Sub ReserveNumbers(numToReserve as Integer, mVltCon As VDF.Vault.Currency.Connections.Connection)
+	Dim oSchemes
+	Dim oSeqSchm
+	Dim FinalText as String
+	Dim GenNum As Integer
+	'Dim vltWebServ = Autodesk.Connectivity.WebServices
+	'Dim vltDocServ = AWS.DocumentService
+	'Get numbering schemes
+	oSeqScheme = AWS.DocumentService.GetNumberingSchemesByType([Autodesk.Connectivity.WebServices.NumSchmType]::(Activated))
+	
+	msgbox(oSeqScheme.SchmID)
+	'Find the one that matches "Sequential"
+	' For Each oScheme in oSchemes
+		' If oScheme.Name  = "Sequential" Then
+			' oSeqSchmID = oScheme.SchmID
+			' Exit For
+		' End If
+	' Next
+	
+	'for loop generates entered number, copied to clipboard
+	For i = 0 to numToReserve 
+		
+		If i = numToReserve Then
+			FinalText = FinalText & GenNum
+		Else 
+			FinalText = FinalText & vbCr & GenNum
+		End If
+		
+	Next
+	
+	My.Computer.Clipboard.SetText(FinalText)
+	
+	
+End Sub
 
 Function GetVaultFile(VaultPath As String, mVltCon As VDF.Vault.Currency.Connections.Connection) As VDF.Vault.Currency.Entities.FileIteration
 

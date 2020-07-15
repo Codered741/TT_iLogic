@@ -24,11 +24,13 @@ Else
 		End Try
 	Next
 	
+	Dim oCompDef as AssemblyComponentDefinition = oDoc.ComponentDefinition
+	
 	'DesignLevel
 	Try 
 		param = Parameter.Param("DesignLevel")
 	Catch
-		oMyParameter=ThisApplication.ActiveDocument.ComponentDefinition.Parameters.UserParameters
+		oMyParameter=oCompDef.Parameters.UserParameters
 		oParameter=oMyParameter.AddByValue("DesignLevel", "", UnitsTypeEnum.kTextUnits)
 		MultiValue.SetList("DesignLevel", "Show", "Element", "Kit", "Stock")
 		Parameter("DesignLevel") = "Kit"

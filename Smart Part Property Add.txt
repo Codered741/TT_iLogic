@@ -4,15 +4,18 @@
 Sub Main()
 
 	SharedVariable("LogVar") = "Smart Part Prop Add"
-	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")
+	iLogicVb.RunExternalRule("Write SV to Log.iLogicVB")
 	
 	'Init
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument
+	Dim oCommandMgr as CommandManager = ThisApplication.CommandManager
 	
 	If oDoc.DocumentType = kDrawingDocumentObject Then
 		MessageBox.Show("This rule can only be run in Assemblies and Parts.  Please try again.  ", "Model Only Rule")
 		Exit Sub
 	End If
+	
+	oCommandMgr.ControlDefinitions.Item("VaultCheckout").Execute 'Check out file
 	
 	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
 	
@@ -27,7 +30,7 @@ Sub Main()
 	Dim CustomGroupName As String = "TAIT Smart Part"
 	Dim pSPVer
 	Dim pSP
-	Dim VersionNum as String = "2.2.3"
+	Dim VersionNum as String = "2.2.4"
 	
 	'Add Values To List
 	'String iProperties - for smart part
@@ -120,9 +123,9 @@ Sub Main()
 End Sub
 	
 '''''''''''''''''''''''''Subroutines
-Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
+Public Sub OPSMVParamAdd(Params As List(Of String), GroupName As String)
 	
-	Dim OPList(0 to 36) As String 
+	Dim OPList(0 To 37) As String 
 	
 	OPList(0)=""" """
 	OPList(1)="""OP009:Lathe CNC~"""
@@ -153,14 +156,16 @@ Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 	OPList(26)="""OP080:OS – Plating~"""
 	OPList(27)="""OP086:OS – Polishing~"""
 	OPList(28)="""OP087: OS - Sandblast~"""
-	OPList(29)="""OP110:OS - Routing~"""
-	OPList(30)="""OP139:3D – Printing~"""
-	OPList(31)="""OP141:OS - Upholstery~"""
-	OPList(32)="""OP145:Post Processing~"""
-	OPList(33)="""OP146:Laser Cutting / Etching~"""
-	OPList(34)="""OP186:OS - Spray Paint~"""
-	OPList(35)="""OP189:OS - Heat Treat & Destruction~"""
-	OPList(36)="""OP191:OS - Passivate~"""
+	OPList(29)="""OP089:OS - Electrical~"""
+	OPList(30)="""OP110:OS - Routing~"""
+	OPList(31)="""OP139:3D – Printing~"""
+	OPList(32)="""OP141:OS - Upholstery~"""
+	OPList(33)="""OP145:Post Processing~"""
+	OPList(34)="""OP146:Laser Cutting / Etching~"""
+	OPList(35)="""OP186:OS - Spray Paint~"""
+	OPList(36)="""OP189:OS - Heat Treat & Destruction~"""
+	OPList(37)="""OP191:OS - Passivate~"""
+	
 	
 	Dim OPx As Parameter
 	
@@ -205,7 +210,7 @@ Public Sub OPSMVParamAdd(Params As List(Of String), GroupName as String)
 	
 End Sub
 
-Public Sub PropAdd(Props as List(Of String), UnitType as String)
+Public Sub PropAdd(Props as List(Of String), UnitType As String)
 	'Init
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument
 	customPropertySet = ThisDoc.Document.PropertySets.Item("Inventor User Defined Properties")
@@ -237,7 +242,7 @@ Public Sub PropAdd(Props as List(Of String), UnitType as String)
 	
 End Sub
 
-Sub ParamAdd(Params As List(Of String), UnitType As String, GroupName as String)
+Sub ParamAdd(Params As List(Of String), UnitType As String, GroupName As String)
 	'Init
 	Dim oDoc As Document = ThisApplication.ActiveEditDocument
 	
@@ -301,7 +306,7 @@ Sub ParamAdd(Params As List(Of String), UnitType As String, GroupName as String)
 	End If
 End Sub
 
-Sub CustomParamGroup(Doc as Document, Params as List(of String), GroupName As String)
+Sub CustomParamGroup(Doc as Document, Params as List(Of String), GroupName As String)
 
 	Dim oCompDef as Object
 	Dim oDoc as Document = ThisApplication.ActiveEditDocument
@@ -318,7 +323,7 @@ Sub CustomParamGroup(Doc as Document, Params as List(of String), GroupName As St
 	
 	UserParams = oCompDef.Parameters.UserParameters
 	
-	Dim ParamGroup as CustomParameterGroup
+	Dim ParamGroup As CustomParameterGroup
 	
 	Try
 		ParamGroup = oCompDef.Parameters.CustomParameterGroups.Item(GroupName)

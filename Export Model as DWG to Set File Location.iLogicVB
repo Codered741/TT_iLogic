@@ -1,18 +1,25 @@
+AddReference "C:\Program Files\Autodesk\AutoCAD 2017\Autodesk.AutoCAD.Interop.dll"
+AddReference "C:\Program Files\Autodesk\AutoCAD 2017\Autodesk.AutoCAD.Interop.Common.dll"
 
-' This is an example iLogic rule by Luke Davenport on Cadline Community
-' It creates a 'folder browser dialog' to allow user to pick a directory location
-' This selected directory location is then used for a generic PDF export operation
-' Please modify to suit your requirements....
-
+Imports System.IO
+Imports Autodesk.AutoCAD.Interop
+Imports Autodesk.AutoCAD.Interop.Common
 Imports System.Windows.Forms
 
 Sub Main()
 
-	SharedVariable("LogVar") = "Export Model as DWG to set Location"
+	On Error Resume Next
+	
+	'Write rule name to log for tracking
+	SharedVariable("LogVar") = "Export Model as DWG to Set Location"
 	iLogicVB.RunExternalRule("Write SV to Log.iLogicVB")	
+	
 
 	Dim oDoc as Document = ThisApplication.ActiveEditDocument
 	customPropertySet = oDoc.PropertySets.Item("Inventor User Defined Properties")
+	DesignPropertySet = oDoc.PropertySets.Item("Design Tracking Properties")
+	SummaryPropertySet = oDoc.PropertySets.Item("Inventor Summary Information")
+	
 	
 	If isPrtAsm(oDoc) = False Then
 		MsgBox("rule must be run from a saved part or assembly!")
@@ -25,23 +32,105 @@ Sub Main()
 		Exit Sub
 	End If
 	
-	Try 
-		prop = customPropertySet.Item("exportPath")
-	Catch
-		customPropertySet.Add("", "exportPath")
-	End Try
-	
-	oProp = customPropertySet.Item("exportPath")
-
-	If oProp.Value = "" Then
-			oProp.Value = ChooseFolderLocation(oDoc)
+	'get/open an instance of AutoCAD
+	Dim oAcadApp as AcadApplication = GetObject(, "AutoCAD.Application")
+	If Err.Number  > 0 Then
+		Err.Clear
+		'MsgBox("Could not get ACAD, launching.  ")
+		oAcadApp = CreateObject("AutoCAD.Application")
+		If Err.Number > 0 Then
+			MsgBox("Error launching AutoCAD.  ")
+			Exit Sub
+		End If
 	End If
 	
-	FileName = ThisDoc.FileName(False)
-	FileNameDWG = oProp.Value & FileName & " ACAD SIMPLE.dwg"
+	oAcadApp.Visible = True	
 	
-	ThisDoc.Document.SaveAs(FileNameDWG, True)
-	MsgBox(FileNameDWG & " has been exported.  ")
+	'Determine if the export path is set, set if not.
+	prop = customPropertySet.Item("exportPath")
+	If Err.Number <> 0 Then
+		customPropertySet.Add("", "exportPath")
+	End If
+	
+	oExpPathProp = customPropertySet.Item("exportPath")
+	
+	Dim pPN = DesignPropertySet.Item("Part Number")	
+	Dim pDesc = DesignPropertySet.Item("Description")
+
+	If oExpPathProp.Value = "" Then
+			oExpPathProp.Value = ChooseFolderLocation(oDoc)
+	End If
+	
+	'Export the Model to AutoCAD
+	FileName = pPN.Value
+	FileNameDWG = oExpPathProp.Value & FileName & "-" & pDesc.Value & " INVENTOR.dwg"
+	
+	'oDoc.SaveAs(FileNameDWG, True)
+	ExportDWG(oDoc, FileNameDWG)
+	
+	
+	If Err.Number <> 0 Then 
+		MsgBox("There was a problem saving the export.  Please re-run the rule to try again.  ")
+		Exit Sub
+	End If
+	
+	'Open the exported File.Attributes
+	AcadDoc = oAcadApp.Documents.Open(FileNameDWG, False)
+	
+	'Determine if the ACAD Color is set, set if not.
+	prop = customPropertySet.Item("ACADColor")
+	
+	If Err.Number <> 0 Then
+		Err.Clear
+		
+		customPropertySet.Add("", "ACADColor")
+		
+		Randomize
+		Rval = Int(255 * Rnd) +1
+		Gval = Int(255 * Rnd) +1
+		Bval = Int(255 * Rnd) +1
+		
+		customPropertySet.Item("ACADColor").Value = Rval & "," & Gval & "," & Bval
+		
+	End If
+	
+	acLayCol = customPropertySet.Item("ACADColor").Value 
+	LayerName = pPN.Value & "-" & pDesc.Value & " - INVENTOR"
+	BlockName = LayerName.Replace(" ", "_")
+		
+	oAcadApp.Activate
+	
+	AcadDoc.SendCommand("-layer" & vbCr & "m" & vbCr & LayerName & vbCr & "c" & vbCr & "t" & vbCr & acLayCol & vbCr & LayerName & vbCr & vbCr) ' creates layer with the correct name
+		
+	AcadDoc.SendCommand("-Ch" & vbCr & "ALL" & vbCr & vbCr & "p" & vbCr & "LA" & vbCr & LayerName & vbCr & vbCr)
+	
+	
+	AcadDoc.SendCommand("-block" & vbCr & BlockName & vbCr & "0,0,0" & vbCr & "all" & vbCr & vbCr)
+	
+	AcadDoc.SendCommand("-insert" & vbCr & BlockName & vbCr & "0,0,0" & vbCr & vbCr & vbCr & vbCr)
+	
+	AcadDoc.SendCommand("-view" & vbCr & "_seiso" & vbCr)
+	
+	AcadDoc.SendCommand("rotate3d" & vbCr & "all" & vbCr & vbCr & "x" & vbCr & vbCr & "90" & vbCr)
+	
+	AcadDoc.SendCommand("-purge" & vbCr & "a"  & vbCr & "*" & vbCr & "n"  & vbCr)
+	
+	AcadDoc.SendCommand("zoom"  & vbCr & "a" & vbCr)
+	
+	AcadDoc.SendCommand("qsave" &  vbCr)
+	
+	AcadDoc.Close(True)
+	
+	ModelFileInfo = My.Computer.FileSystem.GetFileInfo(FileNameDWG)
+	ModelSize = ModelFileInfo.Length / 1000000
+	
+	'msgbox(ModelSize & "mB")
+	
+	If ModelSize < 50 Then
+		MsgBox(FileNameDWG & " has been exported.  AutoCAD may be closed.  ")
+	Else 
+		MessageBox.Show(FileNameDWG & " has been exported.  AutoCAD may be closed.  " & vbLf & vbLf & "The exported file is larger than 50mb.  Consider using a simplified Level of Detail for export.  ", "File Size Warning", MessageBoxButtons.OK, MessageBoxIcon.Warning)
+	End If
 	
 End Sub
 
@@ -83,3 +172,44 @@ Function isPrtAsm(ThisDoc As Document) As Boolean
 		isPrtAsm = False
 	End If
 End Function
+
+Sub ExportDWG(oDocument as Document, FileName as String)
+    ' Get the DWG translator Add-In.
+    Dim DWGAddIn As TranslatorAddIn
+    DWGAddIn = ThisApplication.ApplicationAddIns.ItemById("{C24E3AC2-122E-11D5-8E91-0010B541CD80}")
+
+    'Set a reference to the active document (the document to be published).
+    'Dim oDocument As Document
+    'oDocument = ThisApplication.ActiveDocument
+
+    Dim oContext As TranslationContext
+    oContext = ThisApplication.TransientObjects.CreateTranslationContext
+    oContext.Type = kFileBrowseIOMechanism
+
+    ' Create a NameValueMap object
+    Dim oOptions As NameValueMap
+    oOptions = ThisApplication.TransientObjects.CreateNameValueMap
+	oOptions.Value("DwgVersion") = 31 'AutoCAD 2013
+	oOptions.Value("Solid") = True
+    oOptions.Value("Surface") = True
+    oOptions.Value("Sketch") = True
+
+    ' Create a DataMedium object
+    Dim oDataMedium As DataMedium
+    oDataMedium = ThisApplication.TransientObjects.CreateDataMedium
+
+    ' Check whether the translator has 'SaveCopyAs' options
+    If DWGAddIn.HasSaveCopyAsOptions(oDocument, oContext, oOptions) Then
+
+        Dim strIniFile As String
+        strIniFile = "C:\_vaultWIP\Designs\Templates\Library\iLogic\DWG_Export.ini"
+        ' Create the name-value that specifies the ini file to use.
+        oOptions.Value("Export_Acad_IniFile") = strIniFile
+    End If
+
+    'Set the destination file name
+    oDataMedium.FileName = FileName
+
+    'Publish document.
+    Call DWGAddIn.SaveCopyAs(oDocument, oContext, oOptions, oDataMedium)
+End Sub

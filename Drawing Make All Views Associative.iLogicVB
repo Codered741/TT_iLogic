@@ -1,0 +1,25 @@
+'Make all drawing views associative. 
+
+Sub Main()
+	On Error Resume Next 
+	Dim oDoc as DrawingDocument = ThisApplication.ActiveDocument
+	If Err.Number <> 0 Then
+		MsgBox("Please run rule from a Drawing")
+		Exit Sub
+	End If
+	
+	For Each Sheet In oDoc.Sheets
+		For Each oDwgView in Sheet.DrawingViews
+			'oDwgView.   'Set Drawing view associative
+			
+			If oDwgView.ReferencedDocumentDescriptor.ReferenceMissing = False Then
+				'check if the document presented by the drawing view is an assembly document
+				If oDwgView.ReferencedDocumentDescriptor.ReferencedDocumentType = DocumentTypeEnum.kAssemblyDocumentObject Then
+					'msgbox("is asm: " & oDwgView.ActiveDesignViewRepresentation & " is the view")
+					oDwgView.SetDesignViewRepresentation("Default", True)
+					
+				End If
+			End If
+		Next
+	Next
+End Sub 'Main

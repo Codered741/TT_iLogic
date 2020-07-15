@@ -141,12 +141,12 @@ Sub GetDocsFromBOM(oDoc as Document, ByRef BOMDocs as List(of String))
 	
 	Dim oBOMView as BOMView = oDocBOM.BOMViews.Item("Structured")	
 	Dim oBOMRows As BOMRowsEnumerator = oBOMView.BOMRows
-	Dim oCompDef As ComponentDefinition
-	Dim oPNProp as Inventor.Property
+	'Dim oCompDef As ComponentDefinition
+	'Dim oPNProp as Inventor.Property
 	
 	For Each oRow as BOMRow in oBOMRows
 		
-			GetBOMRowDocFile(oRow, BOMDocs)
+		GetBOMRowDocFile(oRow, BOMDocs)
 		
 	Next 
 	

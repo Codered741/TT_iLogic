@@ -8,7 +8,7 @@ Imports My.Computer.FileSystem
 	
 Sub Main()
 
-	On Error GoTo errhandle
+	On Error Resume Next 'GoTo errhandle
 	
 	'Deactivate Vault Addin
 	Dim VaultAddin As Inventor.ApplicationAddIn = ThisApplication.ApplicationAddIns.ItemById("{48B682BC-42E6-4953-84C5-3D253B52E77B}")
@@ -20,11 +20,16 @@ Sub Main()
 	Dim oDesProps as PropertySet = oDoc.PropertySets.Item("Design Tracking Properties")
 	Dim pJobNum  = oCustPropSet.Item("JobNum")
 	Dim pBuildingNum = oCustPropSet.Item("Building Number")
-	' Dim pUsedOn '= oCustPropSet.Item("UsedOn")
-	' Dim pNextAssy '= oCustPropSet.Item("NextAssy")
+	Dim pUsedOn = oCustPropSet.Item("UsedOn")
+	Dim pNextAssy = oDesProps.Item("Part Number")
 	Dim pPrjNum = oCustPropSet.Item("Project Number")
 	Dim pDesLvl = oCustPropSet.Item("DesignLevel")
 	Dim Project = oDesProps.Item("Project")
+	
+	If Err.Number <> 0 Then
+		goto errhandle
+	End If
+	
 	Dim BOMList As New List(Of String)
 	Dim DrawingsList as New List(Of String)
 	Dim ShowNum as String
@@ -43,7 +48,7 @@ Sub Main()
 	Dim pDwgUsedOn 
 	Dim pDwgNextAssy
 	Dim DwgDoc as Document
-	Dim DwgModelFile As Inventor.File
+	Dim DwgModelFile ' As Inventor.File
 	Dim DwgModelDoc as Document
 	Dim ExportDWG
 	
@@ -68,7 +73,7 @@ Sub Main()
 	End If	
 	
 	'Extract Show Number from Kit.  For use in used on and next assembly
-	ShowNum = Left(pJobNum.Value, InStr(pJobNum.Value, "-")-1)
+	' ShowNum = Left(pJobNum.Value, InStr(pJobNum.Value, "-")-1)
 
 
 	
@@ -103,7 +108,7 @@ Sub Main()
 	ExportDWG = MessageBox.Show("Do you want to export 2D DWG's of the drawings?", "Export DWG's?", MessageBoxButtons.YesNo, MessageBoxIcon.Question)
 	
 	'Create Folder for Drawing Export (User Desktop)
-	Dim ExportPath as String = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop) & "\SMLYDKMK\" & pJobNum.Value & "\" & Now.ToString("yyyyMMddHHmm") & "\"
+	Dim ExportPath as String = System.Environment.GetFolderPath(System.Environment.SpecialFolder.Desktop) & "\SMLYDKMK\" & pJobNum.Value & "\" & Now.ToString("yyyyMMddTHHmm") & "\"
 	Directory.CreateDirectory(ExportPath)
 	
 	'Get all documents from BOM 
@@ -138,37 +143,38 @@ Sub Main()
 		oPDFOptions.Value("Vector_Resolution") = 400
 		oPDFOptions.Value("Sheet_Range") = Inventor.PrintRangeEnum.kPrintAllSheets
 	End If
-		
+	
 	'Open each drawing (Fast open, defer updates) to do updates and export drawing
 	For Each Dwg in DrawingsList
 		'Open Drawing
-		
+
 		DwgDoc = ThisApplication.Documents.Open(Dwg, True)
 		'DwgModelFile = DwgDoc.File.ReferencedFiles.Item(1)
 		'need to add check to see if referenced file is IPT/IAM.  
 		For Each Ref in DwgDoc.File.ReferencedFiles
 			If Ref.FullFileName.Contains(".iam") Then
-				DwgModelFile = Ref
+				DwgModelFile = Ref.FullFileName
 				Exit For
 			End If
 		Next
 		
+		
+		
 		If DwgModelFile Is Nothing
 			For Each Ref in DwgDoc.File.ReferencedFiles
 				IF Ref.FullFileName.Contains(".ipt") Then
-					DwgModelFile = Ref
+					DwgModelFile = Ref.FullFileName
 					Exit For
 				End If
 			Next
 		End If
 		
 		If DwgModelFile Is Nothing
-			MessageBox.Show("A problem occurred in getting the model for this drawing.  " & Ref.FullFileName & "  Exiting.  ", "Model Problem", MessageBoxButtons.OK, MessageBoxIcon.Error)
+			MessageBox.Show("A problem occurred in getting the model for this drawing.  " & DwgModelFile.FullFileName & "  Exiting.  ", "Model Problem", MessageBoxButtons.OK, MessageBoxIcon.Error)
 			Exit Sub
 		End If
 		
-		'Msgbox(DwgModelFile.FullFileName)
-		DwgModelDoc = ThisApplication.Documents.Open(DwgModelFile.FullFileName, False)
+		DwgModelDoc = ThisApplication.Documents.Open(DwgModelFile, False)
 		DwgCustProps = DwgModelDoc.PropertySets.Item("Inventor User Defined Properties")
 		DwgDesProps = DwgModelDoc.PropertySets.Item("Design Tracking Properties")
 		pDwgNextAssy = DwgCustProps.Item("NextAssy")
@@ -205,14 +211,16 @@ Sub Main()
 		Next
 		
 		'Update Used On, Next Assy, Building Number, Project, etc.
-		'only change show number in used on and next assy if it references a kit/element! Check for "-"
-		If pDwgNextAssy.Value.Contains("-") Then
-			pDwgNextAssy.Value = ShowNum & Right(pDwgNextAssy.Value, InStr(pDwgNextAssy.Value, "-") + 1)
-		End If
-		
-		IF pDwgUsedOn.Value.Contains("-") Then
-			pDwgUsedOn.Value = ShowNum & Right(pDwgUsedOn.Value, InStr(pDwgUsedOn.Value, "-") + 1)
-		End If
+
+		' If pDwgNextAssy.Value.Contains("-") Then
+			' pDwgNextAssy.Value = ShowNum & Right(pDwgNextAssy.Value, InStr(pDwgNextAssy.Value, "-") + 1)
+		' End If
+
+		' IF pDwgUsedOn.Value.Contains("-") Then
+			' pDwgUsedOn.Value = ShowNum & Right(pDwgUsedOn.Value, InStr(pDwgUsedOn.Value, "-") + 1)
+		' End If
+		pDwgNextAssy.Value = pNextAssy.Value
+		pDwgUsedOn.Value = pUsedOn.Value
 		
 		'overwrite building number from kit
 		DwgCustProps.Item("Building Number").Value = pBuildingNum.Value
@@ -237,6 +245,8 @@ Sub Main()
 		'Close Drawing without saving
 		DwgModelDoc.Close(True)
 		DwgDoc.Close(True)
+		
+		DwgModelFile = Nothing
 	Next
 	
 		
